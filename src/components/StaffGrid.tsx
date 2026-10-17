@@ -13,7 +13,7 @@ function initials(name: string) {
 }
 
 export function StaffGrid({ barbers, locations }: { barbers: Barber[]; locations: Location[] }) {
-  const tabs = [{ slug: "all", name: "All" }, ...locations.map((l) => ({ slug: l.slug, name: l.name }))];
+  const tabs = [...locations.map((l) => ({ slug: l.slug, name: l.name })), { slug: "all", name: "All" }];
   const locationName = (slug: string) => locations.find((l) => l.slug === slug)?.name ?? slug;
   const [active, setActive] = useState("all");
 
