@@ -30,15 +30,34 @@ function currentOrientation(): Orientation {
   return matchMedia("(orientation: portrait)").matches ? "portrait" : "landscape";
 }
 
-// Video gets a WebM source first and MP4 as the fallback (Safari).
+// MP4 (H.264) first: it plays everywhere, iOS included. WebM is the fallback for
+// browsers without H.264. iOS only autoplays inline video that is muted, so set
+// both the properties and the attributes it checks.
 function setSources(video: HTMLVideoElement, files: { webm: string; mp4: string; poster: string }) {
+  video.muted = video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "");
   video.poster = files.poster;
   video.replaceChildren(
-    Object.assign(document.createElement("source"), { src: files.webm, type: "video/webm" }),
     Object.assign(document.createElement("source"), { src: files.mp4, type: "video/mp4" }),
+    Object.assign(document.createElement("source"), { src: files.webm, type: "video/webm" }),
   );
   video.load();
 }
+
+// Autoplay can be refused (iPhone Low Power Mode does this). Playback started
+// from a tap is always allowed, so retry on the visitor's first interaction.
+function playOrWaitForTap(video: HTMLVideoElement) {
+  video.play().catch(() => {
+    const retry = () => {
+      video.play().catch(() => {});
+      for (const t of TAP_EVENTS) window.removeEventListener(t, retry);
+    };
+    for (const t of TAP_EVENTS) window.addEventListener(t, retry, { passive: true });
+  });
+}
+const TAP_EVENTS = ["touchend", "click", "keydown"] as const;
 
 function motionAllowed() {
   const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
@@ -66,7 +85,7 @@ export function HeroMedia() {
       if (o === shown) return;
       shown = o;
       setSources(video, media("loop", o));
-      video.play().catch(() => {});
+      playOrWaitForTap(video);
     };
     // Don't compete with the intro for bandwidth: wait until its logo shows.
     if (document.documentElement.dataset.intro === "play") {
