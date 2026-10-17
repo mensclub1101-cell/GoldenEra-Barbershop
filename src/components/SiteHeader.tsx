@@ -7,19 +7,18 @@ const nav = [
   { href: "/#reviews", label: "Reviews" },
 ];
 
+// The logo traced from the storefront sign: black on light backgrounds, white on dark.
 export function Wordmark({ invert = false }: { invert?: boolean }) {
   return (
-    <Link href="/" className="flex flex-col leading-none" aria-label={brand.name}>
-      <span
-        className={`font-display text-xl font-semibold uppercase tracking-[0.12em] ${invert ? "text-paper" : "text-ink"}`}
-      >
-        {brand.wordmark}
-      </span>
-      <span
-        className={`text-[10px] font-medium uppercase tracking-[0.42em] ${invert ? "text-paper/60" : "text-muted"}`}
-      >
-        Barbershop
-      </span>
+    <Link href="/" className="flex shrink-0 items-center" aria-label={brand.name}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
+      <img
+        src={invert ? "/brand/logo-white.svg" : "/brand/logo-black.svg"}
+        alt={brand.name}
+        width={2863}
+        height={610}
+        className="h-8 w-auto sm:h-9"
+      />
     </Link>
   );
 }
