@@ -30,7 +30,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the homepage intro script sets data-intro on <html> before React hydrates.
+    <html lang="en" className={`${inter.variable} ${oswald.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

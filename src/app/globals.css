@@ -46,3 +46,84 @@ body {
     transparent 14px 28px
   );
 }
+
+/* ---- Homepage intro (HeroMedia) ---------------------------------------- */
+
+/* The intro only shows when the inline script set <html data-intro="play">. */
+.intro {
+  display: none;
+}
+html[data-intro="play"] .intro,
+.intro[data-state="leaving"] {
+  display: block;
+}
+.intro[data-state="leaving"] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+
+/* Logo lights up from behind: fade/scale in, then a soft white-silver backlight. */
+.logo-reveal {
+  --backlight: 232 238 246;
+  pointer-events: none;
+}
+.logo-reveal .logo-mark,
+.logo-reveal .logo-glow,
+.logo-reveal .logo-halo {
+  opacity: 0;
+}
+.logo-reveal .logo-glow {
+  filter: blur(18px) brightness(1.1);
+}
+.logo-reveal .logo-halo {
+  position: absolute;
+  inset: -40% -10%;
+  background: radial-gradient(closest-side, rgb(var(--backlight) / 0.5), rgb(var(--backlight) / 0.15) 55%, transparent 75%);
+  filter: blur(10px);
+}
+.logo-reveal[data-on="true"] .logo-mark {
+  animation: logo-in 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.logo-reveal[data-on="true"] .logo-glow {
+  animation: logo-glow 1.8s ease-out 0.9s both;
+}
+.logo-reveal[data-on="true"] .logo-halo {
+  animation: logo-halo 2s ease-out 0.8s both;
+}
+@keyframes logo-in {
+  from { opacity: 0; transform: scale(0.94); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@keyframes logo-glow {
+  0% { opacity: 0; }
+  60% { opacity: 0.95; }
+  100% { opacity: 0.6; }
+}
+@keyframes logo-halo {
+  0% { opacity: 0; transform: scale(0.85); }
+  60% { opacity: 1; }
+  100% { opacity: 0.75; transform: scale(1); }
+}
+
+/* Hero content waits behind the intro, then rises in, one item after another. */
+html[data-intro="play"] .hero-reveal > * {
+  opacity: 0;
+}
+html[data-intro="done"] .hero-reveal > * {
+  animation: hero-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+html[data-intro="done"] .hero-reveal > :nth-child(2) { animation-delay: 0.12s; }
+html[data-intro="done"] .hero-reveal > :nth-child(3) { animation-delay: 0.24s; }
+html[data-intro="done"] .hero-reveal > :nth-child(4) { animation-delay: 0.36s; }
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-reveal *,
+  .hero-reveal > * {
+    animation: none !important;
+  }
+}

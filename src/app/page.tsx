@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SiteHeader, Wordmark } from "@/components/SiteHeader";
+import { HeroMedia, INTRO_SCRIPT } from "@/components/HeroMedia";
+import { InlineScript } from "@/components/InlineScript";
 import { StaffGrid } from "@/components/StaffGrid";
 import { getRoster } from "@/lib/roster";
 import {
@@ -133,18 +135,18 @@ export default async function Home() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative overflow-hidden bg-ink text-paper">
-          <div aria-hidden className="stripes-soft absolute inset-0" />
-          <div className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-paper/60">
+        <section className="relative flex min-h-[calc(100svh-4rem)] items-end overflow-hidden bg-ink text-paper">
+          <InlineScript html={INTRO_SCRIPT} />
+          <HeroMedia />
+          <div className="hero-reveal relative mx-auto w-full max-w-6xl px-4 pb-16 pt-32 sm:px-6 sm:pb-24">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-paper/70 sm:tracking-[0.4em]">
               {brand.city} · Two locations
             </p>
-            <h1 className="mt-6 font-display text-6xl font-bold uppercase leading-[0.9] tracking-wide sm:text-8xl">
-              Golden
-              <br />
-              Era
+            <h1 className="mt-6 max-w-xl">
+              {/* eslint-disable-next-line @next/next/no-img-element -- the logo traced from the storefront sign */}
+              <img src="/brand/logo-white.svg" alt={brand.name} width={2863} height={610} className="h-auto w-full" />
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-paper/80">{brand.tagline}</p>
+            <p className="mt-6 max-w-xl text-lg text-paper/85">{brand.tagline}</p>
             <div className="mt-10 flex flex-wrap gap-3">
               <a
                 href="#locations"

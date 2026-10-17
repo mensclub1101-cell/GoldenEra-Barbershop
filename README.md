@@ -27,3 +27,9 @@ Shop content (locations, barbers, reviews) lives in `src/lib/shop.ts`. Entries m
 - Build command: `npx opennextjs-cloudflare build`
 - Deploy command: `npx opennextjs-cloudflare deploy`
 - Worker name: `gold-n-era-barbershop` (must match `wrangler.jsonc`)
+
+## Brand and hero video
+- `brand/`: the logo traced from the storefront sign (black/white, with and without barber poles; SVG + PNG) and the logo reveal videos for social.
+- Homepage intro and hero loop: `public/media/`, built from the raw walkthrough clips with
+  `scripts/build-hero-media.sh <portrait.mov> <landscape.mov>` (bloom and light flashes are baked in).
+- `worker.ts` wraps the OpenNext worker to serve `/media/*` with byte ranges, which iOS Safari needs to play video.
