@@ -1,39 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-// Homepage hero visuals: a one-time full-screen intro (shop walkthrough with
-// the logo lighting up), then a looping walkthrough behind the hero content.
-// Bloom and light flashes are baked into the videos (scripts/build-hero-media.sh);
-// the browser only plays them and runs the logo/fade CSS.
-//
-// The inline script in INTRO_SCRIPT decides before first paint whether the intro
-// plays, by setting <html data-intro="play">. When it ends this component sets
-// data-intro="done", which fades the hero content in (see globals.css).
-
-const SESSION_KEY = "ge-intro-seen";
-const INTRO_STALL_MS = 2500; // give up on a slow intro video and open the site
-const LOGO_AT_S = 2.6; // logo starts revealing this far into the intro video
-const LOGO_EVENT = "ge-intro-logo"; // fired when the logo shows; the loop starts loading then
-
-export const INTRO_SCRIPT = `try{var d=document.documentElement;if(!sessionStorage.getItem("${SESSION_KEY}")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.dataset.intro="play";sessionStorage.setItem("${SESSION_KEY}","1")}}catch(e){}`;
+// Homepage hero background: the outside walkthrough plays once, then fades into
+// the looping interior walkthrough. Content sits on top from the first paint;
+// nothing waits for the video. Bloom and light flashes are baked into the files
+// (scripts/build-hero-media.sh); the browser only plays them.
 
 type Orientation = "portrait" | "landscape";
+type Files = { webm: string; mp4: string; poster: string };
 
-const media = (name: "intro" | "loop", o: Orientation) => ({
+const media = (name: "intro" | "loop", o: Orientation): Files => ({
   webm: `/media/hero-${name}-${o}.webm`,
   mp4: `/media/hero-${name}-${o}.mp4`,
   poster: `/media/hero-${name}-${o}.jpg`,
 });
 
+const LOOP_PRELOAD_S = 3; // start fetching the loop this far into the intro
+
 function currentOrientation(): Orientation {
   return matchMedia("(orientation: portrait)").matches ? "portrait" : "landscape";
+}
+
+function motionAllowed() {
+  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+  return !saveData && !matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 // MP4 (H.264) first: it plays everywhere, iOS included. WebM is the fallback for
 // browsers without H.264. iOS only autoplays inline video that is muted, so set
 // both the properties and the attributes it checks.
-function setSources(video: HTMLVideoElement, files: { webm: string; mp4: string; poster: string }) {
+function setSources(video: HTMLVideoElement, files: Files) {
   video.muted = video.defaultMuted = true;
   video.playsInline = true;
   video.setAttribute("muted", "");
@@ -48,6 +45,7 @@ function setSources(video: HTMLVideoElement, files: { webm: string; mp4: string;
 
 // Autoplay can be refused (iPhone Low Power Mode does this). Playback started
 // from a tap is always allowed, so retry on the visitor's first interaction.
+const TAP_EVENTS = ["touchend", "click", "keydown"] as const;
 function playOrWaitForTap(video: HTMLVideoElement) {
   video.play().catch(() => {
     const retry = () => {
@@ -57,155 +55,87 @@ function playOrWaitForTap(video: HTMLVideoElement) {
     for (const t of TAP_EVENTS) window.addEventListener(t, retry, { passive: true });
   });
 }
-const TAP_EVENTS = ["touchend", "click", "keydown"] as const;
-
-function motionAllowed() {
-  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-  return !saveData && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 export function HeroMedia() {
-  const loopRef = useRef<HTMLVideoElement>(null);
   const introRef = useRef<HTMLVideoElement>(null);
-  const [intro, setIntro] = useState<"off" | "playing" | "leaving">("off");
-  const [logo, setLogo] = useState(false);
+  const loopRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (logo) window.dispatchEvent(new Event(LOGO_EVENT));
-  }, [logo]);
+    const intro = introRef.current;
+    const loop = loopRef.current;
+    if (!intro || !loop || !motionAllowed()) return;
 
-  // Background loop: pick the file for the screen's orientation, swap on
-  // rotation, and pause while the hero is off screen.
-  useEffect(() => {
-    const video = loopRef.current;
-    if (!video || !motionAllowed()) return;
-    let shown: Orientation | null = null;
-    const load = () => {
-      const o = currentOrientation();
-      if (o === shown) return;
-      shown = o;
-      setSources(video, media("loop", o));
-      playOrWaitForTap(video);
+    let orientation = currentOrientation();
+    let loopLoaded = false;
+    const loadLoop = () => {
+      if (loopLoaded) return;
+      loopLoaded = true;
+      setSources(loop, media("loop", orientation));
     };
-    // Don't compete with the intro for bandwidth: wait until its logo shows.
-    if (document.documentElement.dataset.intro === "play") {
-      window.addEventListener(LOGO_EVENT, load, { once: true });
-    } else {
-      load();
-    }
+    // Intro done (or failed): fade it out over the loop.
+    const toLoop = () => {
+      loadLoop();
+      playOrWaitForTap(loop);
+      intro.dataset.done = "true";
+    };
+    const onTime = () => {
+      if (intro.currentTime >= LOOP_PRELOAD_S) loadLoop();
+    };
+    intro.addEventListener("timeupdate", onTime);
+    intro.addEventListener("ended", toLoop);
+    setSources(intro, media("intro", orientation));
+    // Give up on the intro only when its last source fails (earlier ones failing
+    // just means the browser moves on to the next format).
+    intro.lastElementChild?.addEventListener("error", toLoop);
+    playOrWaitForTap(intro);
+
+    // Rotating the phone switches to the other cut of the loop.
     const mq = matchMedia("(orientation: portrait)");
-    mq.addEventListener("change", load);
+    const onRotate = () => {
+      orientation = currentOrientation();
+      intro.pause();
+      intro.dataset.done = "true";
+      loopLoaded = false;
+      loadLoop();
+      playOrWaitForTap(loop);
+    };
+    mq.addEventListener("change", onRotate);
+
+    // Pause while the hero is scrolled out of view.
     const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) video.play().catch(() => {});
-      else video.pause();
+      const active = intro.dataset.done ? loop : intro;
+      if (entry.isIntersecting) active.play().catch(() => {});
+      else active.pause();
     });
-    io.observe(video);
+    io.observe(loop);
+
     return () => {
-      window.removeEventListener(LOGO_EVENT, load);
-      mq.removeEventListener("change", load);
+      intro.removeEventListener("timeupdate", onTime);
+      intro.removeEventListener("ended", toLoop);
+      intro.lastElementChild?.removeEventListener("error", toLoop);
+      mq.removeEventListener("change", onRotate);
       io.disconnect();
     };
   }, []);
 
-  // Intro: only when the inline script asked for it on this page load.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (root.dataset.intro !== "play") return;
-    const video = introRef.current;
-    if (!video) return;
-    setIntro("playing");
-    root.style.overflow = "hidden";
-
-    let finished = false;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      setLogo(true);
-      setIntro("leaving");
-      root.dataset.intro = "done";
-      root.style.overflow = "";
-      window.setTimeout(() => setIntro("off"), 1000);
-    };
-
-    const stall = window.setTimeout(finish, INTRO_STALL_MS);
-    const onPlaying = () => window.clearTimeout(stall);
-    const onTime = () => {
-      if (video.currentTime >= LOGO_AT_S) setLogo(true);
-    };
-    video.addEventListener("playing", onPlaying);
-    video.addEventListener("timeupdate", onTime);
-    video.addEventListener("ended", finish);
-    video.addEventListener("error", finish);
-    const onKey = (e: KeyboardEvent) => {
-      if (["Escape", "Enter", " "].includes(e.key)) finish();
-    };
-    window.addEventListener("keydown", onKey);
-
-    setSources(video, media("intro", currentOrientation()));
-    video.play().catch(finish);
-
-    window.addEventListener("ge-intro-skip", finish);
-    return () => {
-      window.clearTimeout(stall);
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("ge-intro-skip", finish);
-      video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("timeupdate", onTime);
-      video.removeEventListener("ended", finish);
-      video.removeEventListener("error", finish);
-      root.style.overflow = "";
-    };
-  }, []);
-
   return (
-    <>
-      {/* Background: poster right away (server-rendered), loop video over it once it plays. */}
-      <div aria-hidden className="absolute inset-0 overflow-hidden bg-ink">
-        <picture>
-          <source media="(orientation: portrait)" srcSet={media("loop", "portrait").poster} />
-          <img src={media("loop", "landscape").poster} alt="" className="h-full w-full object-cover" />
-        </picture>
-        <video
-          ref={loopRef}
-          muted
-          loop
-          playsInline
-          autoPlay
-          preload="none"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        {/* Darken behind the text so it stays readable over any frame. */}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/45 to-ink/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/60 to-transparent" />
-      </div>
-
-      {/* One-time intro. Hidden unless <html data-intro="play">; tap anywhere skips. */}
-      <div className="intro fixed inset-0 z-[60] bg-ink" data-state={intro}>
-        <video
-          ref={introRef}
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div aria-hidden className="absolute inset-0 bg-ink/25" />
-        <div aria-hidden className="logo-reveal absolute inset-0 grid place-items-center px-8" data-on={logo}>
-          <div className="relative w-full max-w-3xl">
-            <div className="logo-halo" />
-            {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, no optimization needed */}
-            <img src="/brand/logo-white.svg" alt="" className="logo-glow absolute inset-0 h-auto w-full" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-white.svg" alt="" className="logo-mark relative h-auto w-full" />
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new Event("ge-intro-skip"))}
-          className="absolute inset-0 flex cursor-pointer items-end justify-center pb-10 text-xs font-semibold uppercase tracking-[0.3em] text-paper/60"
-        >
-          Tap to skip
-        </button>
-      </div>
-    </>
+    <div aria-hidden className="absolute inset-0 overflow-hidden bg-ink">
+      {/* Poster right away (server-rendered); the videos cover it once they play. */}
+      <picture>
+        <source media="(orientation: portrait)" srcSet={media("intro", "portrait").poster} />
+        <img src={media("intro", "landscape").poster} alt="" className="h-full w-full object-cover" />
+      </picture>
+      <video ref={loopRef} muted loop playsInline preload="none" className="absolute inset-0 h-full w-full object-cover" />
+      <video
+        ref={introRef}
+        muted
+        playsInline
+        preload="auto"
+        className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 data-[done]:opacity-0"
+      />
+      {/* Darken behind the text so it stays readable over any frame. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/45 to-ink/30" />
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/60 to-transparent" />
+    </div>
   );
 }

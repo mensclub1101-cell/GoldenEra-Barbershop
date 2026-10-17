@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SiteHeader, Wordmark } from "@/components/SiteHeader";
-import { HeroMedia, INTRO_SCRIPT } from "@/components/HeroMedia";
-import { InlineScript } from "@/components/InlineScript";
+import { HeroMedia } from "@/components/HeroMedia";
 import { StaffGrid } from "@/components/StaffGrid";
 import { getRoster } from "@/lib/roster";
 import {
@@ -136,9 +135,8 @@ export default async function Home() {
       <main className="flex-1">
         {/* Hero */}
         <section className="relative flex min-h-[calc(100svh-4rem)] items-end overflow-hidden bg-ink text-paper">
-          <InlineScript html={INTRO_SCRIPT} />
           <HeroMedia />
-          <div className="hero-reveal relative mx-auto w-full max-w-6xl px-4 pb-16 pt-32 sm:px-6 sm:pb-24">
+          <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-32 sm:px-6 sm:pb-24">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-paper/70 sm:tracking-[0.4em]">
               {brand.city} · Two locations
             </p>

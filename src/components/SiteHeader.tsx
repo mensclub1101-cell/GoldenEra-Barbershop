@@ -33,7 +33,7 @@ export function SiteHeader() {
             <a
               key={n.href}
               href={n.href}
-              className="text-sm font-medium uppercase tracking-wider text-muted transition hover:text-ink"
+              className="text-sm font-medium uppercase tracking-wider text-ink transition hover:opacity-60"
             >
               {n.label}
             </a>
