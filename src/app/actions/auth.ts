@@ -80,7 +80,10 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     options: { data: { full_name: fullName, phone } },
   });
   if (error) {
-    if (error.code === "user_already_exists") return { error: "That email already has an account. Log in instead." };
+    // Supabase signals this with a code on some paths and only a message on others.
+    if (error.code === "user_already_exists" || /already (registered|exists)/i.test(error.message)) {
+      return { error: "That email already has an account. Log in instead." };
+    }
     return { error: error.message };
   }
   // Supabase hides existing emails by returning a user with no identities.
