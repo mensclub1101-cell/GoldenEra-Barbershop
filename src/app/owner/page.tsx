@@ -13,7 +13,7 @@ import {
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay, formatMoney, formatTimestamp, rentStatus, todayInShop } from "@/lib/format";
-import { siteUrl } from "@/lib/shop";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Owner | Golden Era Barbershop" };
 
@@ -23,6 +23,7 @@ const smallButton =
 export default async function OwnerPage() {
   const viewer = await requireRole("owner");
   const supabase = await createClient();
+  const siteUrl = await getSiteUrl();
   const today = todayInShop();
 
   const [{ data: shops }, { data: barbers }, { data: invites }, { data: charges }] = await Promise.all([

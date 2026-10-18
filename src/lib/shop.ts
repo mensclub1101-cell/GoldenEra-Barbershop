@@ -33,7 +33,7 @@ export type Review = {
 };
 
 // Public address of the live site. Used for link previews and Google data.
-// Set NEXT_PUBLIC_SITE_URL in the Cloudflare build settings once the domain is chosen.
+// Fallback only: pages use the address each request came in on (lib/site-url.ts).
 export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export const brand = {

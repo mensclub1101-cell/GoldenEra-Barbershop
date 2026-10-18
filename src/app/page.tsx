@@ -3,13 +3,13 @@ import { SiteHeader, Wordmark } from "@/components/SiteHeader";
 import { HeroMedia } from "@/components/HeroMedia";
 import { StaffGrid } from "@/components/StaffGrid";
 import { getRoster } from "@/lib/roster";
+import { getSiteUrl } from "@/lib/site-url";
 import {
   brand,
   fullAddress,
   locationName,
   mapsUrl,
   reviews,
-  siteUrl,
   telHref,
   type Location,
 } from "@/lib/shop";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 const liveReviews = reviews.filter((r) => !r.sample);
 
 // schema.org data so Google can show both shops as one business with two locations.
-const structuredDataFor = (locations: Location[]) => ({
+const structuredDataFor = (locations: Location[], siteUrl: string) => ({
   "@context": "https://schema.org",
   "@graph": locations.map((l) => ({
     "@type": "BarberShop",
@@ -123,12 +123,12 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default async function Home() {
-  const { locations, barbers } = await getRoster();
+  const [{ locations, barbers }, siteUrl] = await Promise.all([getRoster(), getSiteUrl()]);
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredDataFor(locations)).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredDataFor(locations, siteUrl)).replace(/</g, "\\u003c") }}
       />
       <SiteHeader />
 
