@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { AppShell, Panel, StatusPill } from "@/components/AppShell";
 import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { updateMyCard } from "@/app/actions/barber";
+import { ClockWidget } from "@/components/ClockWidget";
+import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay, formatMoney, formatTimestamp, rentStatus, todayInShop } from "@/lib/format";
@@ -22,9 +24,31 @@ export default async function BarberPage() {
   ]);
   const rent = charges ?? [];
   const owed = rent.filter((c) => !c.paid_at).reduce((sum, c) => sum + c.amount_cents, 0);
+  const nextDue = rent.filter((c) => !c.paid_at).sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
 
   return (
     <AppShell viewer={viewer}>
+      <SwipeDeck labels={["Widgets", "Home"]} start={1}>
+        {/* Widgets: swipe right from Home, like the iPhone Today View. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <ClockWidget />
+          <Widget title="Walk-ins" aside={shop?.name}>
+            <p className="text-sm text-ink-2">Clients who check in at the shop will line up here.</p>
+            <p className="mt-2 text-xs text-muted">Walk-in check-in is the next feature being built.</p>
+          </Widget>
+          <Widget title="Rent" aside={owed > 0 ? `${formatMoney(owed)} owed` : "All paid"}>
+            {nextDue ? (
+              <p className="text-sm text-ink-2">
+                Next: <strong>{formatMoney(nextDue.amount_cents)}</strong>{" "}
+                {rentStatus(nextDue, today) === "late" ? "was due" : "due"} {formatDay(nextDue.due_date)}
+              </p>
+            ) : (
+              <p className="text-sm text-ink-2">Nothing due.</p>
+            )}
+          </Widget>
+        </div>
+
+        <div>
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">{shop?.name}</p>
       <h1 className="mt-1 font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">
         {seat.display_name}
@@ -93,6 +117,20 @@ export default async function BarberPage() {
           </Panel>
         </div>
       </div>
+        </div>
+      </SwipeDeck>
     </AppShell>
+  );
+}
+
+function Widget({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-line bg-paper p-5">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-muted">{title}</h2>
+        {aside && <span className="text-xs font-semibold text-ink-2">{aside}</span>}
+      </div>
+      {children}
+    </div>
   );
 }
