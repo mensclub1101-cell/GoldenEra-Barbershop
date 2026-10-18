@@ -53,6 +53,7 @@ export function SwipeDeck({
       </div>
 
       {/* Page dots, pinned above the bottom edge like the iPhone home screen. */}
+      {pages.length > 1 && (
       <nav
         aria-label="Pages"
         className="fixed inset-x-0 bottom-0 z-30 flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]"
@@ -70,6 +71,7 @@ export function SwipeDeck({
           ))}
         </div>
       </nav>
+      )}
     </div>
   );
 }

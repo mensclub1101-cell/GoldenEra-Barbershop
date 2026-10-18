@@ -42,3 +42,12 @@ export function rentStatus(charge: { due_date: string; paid_at: string | null },
   if (charge.paid_at) return "paid";
   return charge.due_date < today ? "late" : "due";
 }
+
+// The most recent Wednesday on or before `today` (YYYY-MM-DD, shop time): the
+// cleaning list's week starts then.
+export function thisWednesday(today = todayInShop()): string {
+  const [y, m, d] = today.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d - ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() - 3 + 7) % 7)));
+  // Built from calendar parts in UTC, so formatting it in UTC can't roll the day.
+  return date.toISOString().slice(0, 10);
+}

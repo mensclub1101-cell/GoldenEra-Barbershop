@@ -15,15 +15,16 @@ const subscribe = (tick: () => void) => {
 const getSecond = () => Math.floor(Date.now() / 1000);
 const getServerSecond = () => null;
 
-// Shop-time clock for the widgets page.
-export function ClockWidget() {
+// Shop-time clock for the widgets page, with who's logged in.
+export function ClockWidget({ name }: { name: string }) {
   const second = useSyncExternalStore(subscribe, getSecond, getServerSecond);
   const now = second === null ? null : new Date(second * 1000);
   const [time, period] = now ? timeFmt.format(now).split(" ") : ["", ""];
   return (
     <div className="rounded-3xl bg-ink p-6 text-paper">
       <p className="text-sm font-semibold text-paper/60">{now ? dateFmt.format(now) : " "}</p>
-      <p className="mt-1 font-display text-7xl font-semibold leading-none tracking-tight tabular-nums">
+      <p className="mt-1 text-lg font-semibold">{name}</p>
+      <p className="mt-3 font-display text-7xl font-semibold leading-none tracking-tight tabular-nums">
         {time || " "}
         <span className="ml-2 text-2xl font-medium text-paper/70">{period}</span>
       </p>

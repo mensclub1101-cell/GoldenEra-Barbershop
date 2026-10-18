@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AppShell, Panel, StatusPill } from "@/components/AppShell";
+import { AppShell, StatusPill } from "@/components/AppShell";
 import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { updateMyCard } from "@/app/actions/barber";
 import { ClockWidget } from "@/components/ClockWidget";
+import { ClientList } from "@/components/staff/ClientList";
+import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
+import { ShopChat } from "@/components/staff/ShopChat";
+import { WalkinsWidget } from "@/components/staff/WalkinsWidget";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDay, formatMoney, formatTimestamp, rentStatus, todayInShop } from "@/lib/format";
+import { formatDay, formatMoney, formatTimestamp, rentStatus, thisWednesday, todayInShop } from "@/lib/format";
 
-export const metadata: Metadata = { title: "My card | Golden Era Barbershop" };
+export const metadata: Metadata = { title: "Barber | Golden Era Barbershop" };
 
 export default async function BarberPage() {
   const viewer = await requireRole("barber", "owner");
@@ -18,24 +22,74 @@ export default async function BarberPage() {
 
   const supabase = await createClient();
   const today = todayInShop();
-  const [{ data: shop }, { data: charges }] = await Promise.all([
+  const [
+    { data: shop },
+    { data: charges },
+    { data: walkins },
+    { data: shopBarbers },
+    { data: messages },
+    { data: supplies },
+    { data: cleaning },
+    { data: clients },
+  ] = await Promise.all([
     supabase.from("shops").select("name").eq("id", seat.shop_id).single(),
     supabase.from("rent_charges").select("*").eq("barber_id", seat.id).order("due_date", { ascending: false }),
+    supabase.from("walkins").select("*").eq("shop_id", seat.shop_id).eq("status", "waiting").order("created_at"),
+    supabase.from("barbers").select("id, display_name").eq("shop_id", seat.shop_id),
+    supabase.from("shop_messages").select("*").eq("shop_id", seat.shop_id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("supplies").select("*").eq("shop_id", seat.shop_id).order("sort").order("name"),
+    supabase.from("cleaning_tasks").select("*").eq("shop_id", seat.shop_id).order("sort"),
+    supabase.from("clients").select("*").eq("barber_id", seat.id).order("last_visit_at", { ascending: false }),
   ]);
+  const barberNames = Object.fromEntries((shopBarbers ?? []).map((b) => [b.id, b.display_name]));
+  const myName = viewer.profile.full_name ?? seat.display_name;
   const rent = charges ?? [];
   const owed = rent.filter((c) => !c.paid_at).reduce((sum, c) => sum + c.amount_cents, 0);
   const nextDue = rent.filter((c) => !c.paid_at).sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
 
+  // The card is "done" once clients can reach the barber from it.
+  const cardDone = Boolean(seat.phone && seat.booking_url);
+  const cardForm = (
+    <ActionForm action={updateMyCard} className="space-y-4">
+      <Field label="Name on the site" name="display_name" defaultValue={seat.display_name} required />
+      <Field label="Specialty" name="specialty" defaultValue={seat.specialty} placeholder="Skin fades, beard work…" />
+      <Field label="Phone" name="phone" type="tel" defaultValue={seat.phone} />
+      <Field
+        label="Booking link"
+        name="booking_url"
+        defaultValue={seat.booking_url}
+        placeholder="book.thecut.co/yourname"
+        hint="theCut, Booksy, Square, Setmore… Clients tap “Book with you” to open it."
+      />
+      <Field label="Instagram" name="instagram" defaultValue={seat.instagram} placeholder="@yourhandle" />
+      <SubmitButton>Save</SubmitButton>
+    </ActionForm>
+  );
+
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Widgets", "Home"]} start={1}>
-        {/* Widgets: swipe right from Home, like the iPhone Today View. */}
+      <SwipeDeck labels={["Widgets", "Shop ops", "Clients"]}>
         <div className="mx-auto max-w-md space-y-4">
-          <ClockWidget />
+          <ClockWidget name={myName} />
+
+          {!cardDone && (
+            <Widget title="Finish your card" aside={shop?.name}>
+              <p className="mb-4 text-sm text-ink-2">
+                Add your phone and booking link so clients can book you from the website. This goes away once
+                it&rsquo;s filled in.
+              </p>
+              {cardForm}
+            </Widget>
+          )}
+
           <Widget title="Walk-ins" aside={shop?.name}>
-            <p className="text-sm text-ink-2">Clients who check in at the shop will line up here.</p>
-            <p className="mt-2 text-xs text-muted">Walk-in check-in is the next feature being built.</p>
+            <WalkinsWidget shopId={seat.shop_id} seatId={seat.id} initial={walkins ?? []} barberNames={barberNames} />
           </Widget>
+
+          <Widget title="Shop chat" aside={shop?.name}>
+            <ShopChat shopId={seat.shop_id} me={viewer.userId} myName={myName} initial={(messages ?? []).reverse()} />
+          </Widget>
+
           <Widget title="Rent" aside={owed > 0 ? `${formatMoney(owed)} owed` : "All paid"}>
             {nextDue ? (
               <p className="text-sm text-ink-2">
@@ -45,78 +99,63 @@ export default async function BarberPage() {
             ) : (
               <p className="text-sm text-ink-2">Nothing due.</p>
             )}
+            {rent.length > 0 && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs font-semibold text-muted">All charges</summary>
+                <ul className="mt-2 divide-y divide-line">
+                  {rent.map((c) => {
+                    const status = rentStatus(c, today);
+                    return (
+                      <li key={c.id} className="flex items-center gap-3 py-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{formatMoney(c.amount_cents)}</p>
+                          <p className="text-xs text-muted">
+                            Due {formatDay(c.due_date)}
+                            {c.paid_at && ` · Paid ${formatTimestamp(c.paid_at)}`}
+                            {c.note && ` · ${c.note}`}
+                          </p>
+                        </div>
+                        <StatusPill tone={status === "late" ? "alert" : status === "paid" ? "ink" : "muted"}>
+                          {status}
+                        </StatusPill>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            )}
+          </Widget>
+
+          {cardDone && (
+            <details className="rounded-3xl border border-line bg-paper p-5">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.25em] text-muted">
+                Edit my card
+              </summary>
+              {!seat.active && (
+                <p className="mt-3 rounded-xl bg-paper-2 px-4 py-3 text-sm">
+                  Your card is hidden from the website right now. Ask the owner to show it.
+                </p>
+              )}
+              <div className="mt-4">{cardForm}</div>
+            </details>
+          )}
+        </div>
+
+        {/* Shop ops: supplies and the Wednesday cleaning list. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <PageTitle eyebrow={shop?.name} title="Shop ops" />
+          <Widget title="Supplies">
+            <SupplyList supplies={supplies ?? []} />
+          </Widget>
+          <Widget title="Wednesday cleaning" aside={`Week of ${formatDay(thisWednesday(today))}`}>
+            <CleaningList tasks={cleaning ?? []} weekOf={thisWednesday(today)} />
           </Widget>
         </div>
 
-        <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">{shop?.name}</p>
-      <h1 className="mt-1 font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">
-        {seat.display_name}
-      </h1>
-      {!seat.active && (
-        <p className="mt-4 rounded-xl bg-paper-2 px-4 py-3 text-sm">
-          Your card is hidden from the website right now. Ask the owner to show it.
-        </p>
-      )}
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <Panel title="My card">
-            <p className="-mt-2 mb-5 text-sm text-muted">This is what clients see on the Golden Era website.</p>
-            <ActionForm action={updateMyCard} className="space-y-4">
-              <Field label="Name on the site" name="display_name" defaultValue={seat.display_name} required />
-              <Field
-                label="Specialty"
-                name="specialty"
-                defaultValue={seat.specialty}
-                placeholder="Skin fades, beard work…"
-              />
-              <Field label="Phone" name="phone" type="tel" defaultValue={seat.phone} />
-              <Field
-                label="Booking link"
-                name="booking_url"
-                defaultValue={seat.booking_url}
-                placeholder="book.thecut.co/yourname"
-                hint="theCut, Booksy, Square, Setmore… Clients tap “Book with you” to open it."
-              />
-              <Field label="Instagram" name="instagram" defaultValue={seat.instagram} placeholder="@yourhandle" />
-              <SubmitButton>Save</SubmitButton>
-            </ActionForm>
-          </Panel>
-        </div>
-
-        <div className="lg:col-span-2">
-          <Panel
-            title="My rent"
-            aside={<span className="text-sm font-semibold">{owed > 0 ? `${formatMoney(owed)} owed` : "All paid"}</span>}
-          >
-            {rent.length === 0 ? (
-              <p className="text-sm text-muted">No rent charges yet.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {rent.map((c) => {
-                  const status = rentStatus(c, today);
-                  return (
-                    <li key={c.id} className="flex items-center gap-3 py-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold">{formatMoney(c.amount_cents)}</p>
-                        <p className="text-xs text-muted">
-                          Due {formatDay(c.due_date)}
-                          {c.paid_at && ` · Paid ${formatTimestamp(c.paid_at)}`}
-                          {c.note && ` · ${c.note}`}
-                        </p>
-                      </div>
-                      <StatusPill tone={status === "late" ? "alert" : status === "paid" ? "ink" : "muted"}>
-                        {status}
-                      </StatusPill>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-        </div>
-      </div>
+        {/* Client list: walk-ins this barber saved. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <PageTitle eyebrow={`${(clients ?? []).length} saved`} title="Clients" />
+          <ClientList clients={clients ?? []} />
         </div>
       </SwipeDeck>
     </AppShell>
@@ -131,6 +170,15 @@ function Widget({ title, aside, children }: { title: string; aside?: React.React
         {aside && <span className="text-xs font-semibold text-ink-2">{aside}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+function PageTitle({ eyebrow, title }: { eyebrow?: string; title: string }) {
+  return (
+    <div className="px-1 pt-1">
+      {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">{eyebrow}</p>}
+      <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">{title}</h1>
     </div>
   );
 }

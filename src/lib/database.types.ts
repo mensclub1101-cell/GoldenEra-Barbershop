@@ -5,6 +5,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type AppRole = "owner" | "barber" | "client";
+export type SupplyStatus = "full" | "low" | "out";
+export type WalkinStatus = "waiting" | "done" | "no_show";
 
 export type Database = {
   __InternalSupabase: {
@@ -175,9 +177,100 @@ export type Database = {
         };
         Relationships: [];
       };
+      walkins: {
+        Row: {
+          barber_id: string | null;
+          created_at: string;
+          handled_at: string | null;
+          handled_by: string | null;
+          id: string;
+          name: string;
+          phone: string;
+          shop_id: string;
+          status: WalkinStatus;
+        };
+        Insert: never;
+        Update: {
+          handled_at?: string | null;
+          handled_by?: string | null;
+          status?: WalkinStatus;
+        };
+        Relationships: [];
+      };
+      clients: {
+        Row: {
+          barber_id: string;
+          created_at: string;
+          id: string;
+          last_visit_at: string;
+          name: string;
+          notes: string | null;
+          phone: string;
+          visits: number;
+        };
+        Insert: {
+          barber_id: string;
+          last_visit_at?: string;
+          name: string;
+          notes?: string | null;
+          phone: string;
+          visits?: number;
+        };
+        Update: {
+          last_visit_at?: string;
+          name?: string;
+          notes?: string | null;
+          visits?: number;
+        };
+        Relationships: [];
+      };
+      supplies: {
+        Row: {
+          id: string;
+          name: string;
+          shop_id: string;
+          sort: number;
+          status: SupplyStatus;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: { name: string; shop_id: string; sort?: number; status?: SupplyStatus };
+        Update: { status?: SupplyStatus; updated_at?: string; updated_by?: string | null };
+        Relationships: [];
+      };
+      cleaning_tasks: {
+        Row: {
+          done_by: string | null;
+          id: string;
+          last_done_on: string | null;
+          shop_id: string;
+          sort: number;
+          task: string;
+        };
+        Insert: { shop_id: string; task: string; sort?: number };
+        Update: { done_by?: string | null; last_done_on?: string | null };
+        Relationships: [];
+      };
+      shop_messages: {
+        Row: {
+          author_id: string;
+          author_name: string;
+          body: string;
+          created_at: string;
+          id: string;
+          shop_id: string;
+        };
+        Insert: { author_name: string; body: string; shop_id: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
+      check_in: {
+        Args: { p_shop: string; p_name: string; p_phone: string; p_barber?: string };
+        Returns: number;
+      };
       claim_invite: {
         Args: { p_token: string };
         Returns: AppRole;
@@ -192,7 +285,7 @@ export type Database = {
         }[];
       };
     };
-    Enums: { app_role: AppRole };
+    Enums: { app_role: AppRole; supply_status: SupplyStatus; walkin_status: WalkinStatus };
     CompositeTypes: { [_ in never]: never };
   };
 };

@@ -146,9 +146,15 @@ export default async function Home() {
             </h1>
             <p className="mt-6 max-w-xl text-lg text-paper/85">{brand.tagline}</p>
             <div className="mt-10 flex flex-wrap gap-3">
+              <Link
+                href="/checkin"
+                className="rounded-full bg-paper px-6 py-3 text-sm font-semibold uppercase tracking-wider text-ink transition hover:bg-paper-2"
+              >
+                Walk-in check in
+              </Link>
               <a
                 href="#locations"
-                className="rounded-full bg-paper px-6 py-3 text-sm font-semibold uppercase tracking-wider text-ink transition hover:bg-paper-2"
+                className="rounded-full border border-paper/40 px-6 py-3 text-sm font-semibold uppercase tracking-wider text-paper transition hover:border-paper"
               >
                 Find a location
               </a>

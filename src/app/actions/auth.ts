@@ -91,3 +91,23 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (!data.session) return { notice: "Check your email to confirm your account, then log in." };
   redirect("/client");
 }
+
+// Walk-in check-in from the website or the QR code at the door. Anyone can do
+// this; check_in() validates and rate-limits in the database.
+export async function checkIn(_prev: FormState, formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const barber = text(formData, "barber_id");
+  const { data: place, error } = await supabase.rpc("check_in", {
+    p_shop: text(formData, "shop"),
+    p_name: text(formData, "name"),
+    p_phone: text(formData, "phone"),
+    ...(barber ? { p_barber: barber } : {}),
+  });
+  if (error) return { error: error.message };
+  return {
+    notice:
+      place === 1
+        ? "You're checked in and next in line. A barber will call you shortly."
+        : `You're checked in. You're #${place} in line. A barber will call you when it's your turn.`,
+  };
+}
