@@ -57,7 +57,7 @@ function LocationCard({ location, index, barberCount }: { location: Location; in
       {location.photo ? (
         <div
           aria-hidden
-          className="absolute inset-0 bg-cover bg-center grayscale"
+          className="absolute inset-0 scale-105 bg-cover bg-center blur-[2px] grayscale"
           style={{ backgroundImage: `url(${location.photo})` }}
         />
       ) : (
