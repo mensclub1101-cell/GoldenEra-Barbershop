@@ -51,6 +51,22 @@ export async function updateClientNotes(clientId: string, notes: string) {
   revalidatePath("/barber");
 }
 
+// Add a client by hand (someone who booked online, a regular from before).
+export async function addClient(name: string, phone: string, notes: string): Promise<{ error?: string }> {
+  const { seat, supabase } = await staff();
+  const cleanName = name.trim().slice(0, 60);
+  if (!cleanName) return { error: "Add a name." };
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  if (digits && digits.length !== 10) return { error: "Phone needs 10 digits, or leave it blank." };
+  const { error } = await supabase
+    .from("clients")
+    .insert({ barber_id: seat.id, name: cleanName, phone: digits || null, notes: notes.trim().slice(0, 500) || null });
+  if (error?.code === "23505") return { error: "That number is already in your clients." };
+  if (error) return { error: "Couldn't save. Try again." };
+  revalidatePath("/barber");
+  return {};
+}
+
 export async function deleteClient(clientId: string) {
   const { supabase } = await staff();
   await supabase.from("clients").delete().eq("id", clientId);

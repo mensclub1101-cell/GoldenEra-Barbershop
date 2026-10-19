@@ -205,7 +205,7 @@ export type Database = {
           last_visit_at: string;
           name: string;
           notes: string | null;
-          phone: string;
+          phone: string | null;
           visits: number;
         };
         Insert: {
@@ -213,7 +213,7 @@ export type Database = {
           last_visit_at?: string;
           name: string;
           notes?: string | null;
-          phone: string;
+          phone?: string | null;
           visits?: number;
         };
         Update: {

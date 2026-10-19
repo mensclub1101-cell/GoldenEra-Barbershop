@@ -71,7 +71,7 @@ export default async function BarberPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Clients"]}>
+      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients"]}>
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
 
@@ -152,7 +152,7 @@ export default async function BarberPage() {
             shopName={shop?.name ?? ""}
             bookingUrl={seat.booking_url}
             siteUrl={siteUrl}
-            clients={(clients ?? []).map((c) => ({ name: c.name, phone: c.phone }))}
+            clients={(clients ?? []).flatMap((c) => (c.phone ? [{ name: c.name, phone: c.phone }] : []))}
           />
         </div>
 
@@ -167,7 +167,40 @@ export default async function BarberPage() {
           </Widget>
         </div>
 
-        {/* Client list: walk-ins this barber saved. */}
+        {/* Booking: the barber's own booking site, right inside the app. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <PageTitle eyebrow={seat.display_name} title="Booking" />
+          {seat.booking_url ? (
+            <>
+              <a
+                href={seat.booking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-full bg-ink py-3 text-center text-sm font-semibold text-paper"
+              >
+                Open full screen
+              </a>
+              <div className="overflow-hidden rounded-3xl border border-line bg-paper-2">
+                <iframe
+                  src={seat.booking_url}
+                  title="My booking schedule"
+                  loading="lazy"
+                  className="block h-[calc(100dvh-20rem)] min-h-80 w-full"
+                />
+              </div>
+              <p className="px-1 text-xs text-muted">
+                Some booking apps won&rsquo;t show inside other sites. If it&rsquo;s blank, tap Open full screen.
+              </p>
+            </>
+          ) : (
+            <Widget title="Add your booking link">
+              <p className="mb-4 text-sm text-ink-2">Add your theCut, Booksy, Square or Setmore link and your schedule shows up here.</p>
+              {cardForm}
+            </Widget>
+          )}
+        </div>
+
+        {/* Client list: walk-ins this barber saved, plus ones added by hand. */}
         <div className="mx-auto max-w-md space-y-4">
           <PageTitle eyebrow={`${(clients ?? []).length} saved`} title="Clients" />
           <ClientList clients={clients ?? []} />
