@@ -64,7 +64,7 @@ export const locations: Location[] = [
     postalCode: "92555",
     phone: null,
     hours: null,
-    photo: null,
+    photo: "/shop-moreno-beach.jpg",
   },
 ];
 
