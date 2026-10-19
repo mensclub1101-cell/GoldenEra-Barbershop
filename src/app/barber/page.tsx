@@ -162,7 +162,7 @@ export default async function BarberPage() {
           <Widget title="Supplies">
             <SupplyList supplies={supplies ?? []} />
           </Widget>
-          <Widget title="Wednesday cleaning" aside={`Week of ${formatDay(thisWednesday(today))}`}>
+          <Widget title="Wednesday clean" aside={`Week of ${formatDay(thisWednesday(today))}`}>
             <CleaningList tasks={cleaning ?? []} weekOf={thisWednesday(today)} />
           </Widget>
         </div>

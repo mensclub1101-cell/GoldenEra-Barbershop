@@ -240,6 +240,7 @@ export type Database = {
       };
       cleaning_tasks: {
         Row: {
+          assignee: string | null;
           done_by: string | null;
           id: string;
           last_done_on: string | null;
@@ -247,8 +248,8 @@ export type Database = {
           sort: number;
           task: string;
         };
-        Insert: { shop_id: string; task: string; sort?: number };
-        Update: { done_by?: string | null; last_done_on?: string | null };
+        Insert: { shop_id: string; task: string; sort?: number; assignee?: string | null };
+        Update: { assignee?: string | null; done_by?: string | null; last_done_on?: string | null };
         Relationships: [];
       };
       shop_messages: {

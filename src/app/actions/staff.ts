@@ -88,3 +88,26 @@ export async function setCleaningDone(taskId: string, done: boolean) {
     .eq("id", taskId);
   revalidatePath("/barber");
 }
+
+export async function setCleaningAssignee(taskId: string, assignee: string) {
+  const { supabase } = await staff();
+  await supabase
+    .from("cleaning_tasks")
+    .update({ assignee: assignee.trim().slice(0, 40) || null })
+    .eq("id", taskId);
+  revalidatePath("/barber");
+}
+
+export async function addCleaningTask(task: string) {
+  const { seat, supabase } = await staff();
+  const clean = task.trim().slice(0, 80);
+  if (!clean) return;
+  await supabase.from("cleaning_tasks").insert({ shop_id: seat.shop_id, task: clean, sort: 100 });
+  revalidatePath("/barber");
+}
+
+export async function removeCleaningTask(taskId: string) {
+  const { supabase } = await staff();
+  await supabase.from("cleaning_tasks").delete().eq("id", taskId);
+  revalidatePath("/barber");
+}
