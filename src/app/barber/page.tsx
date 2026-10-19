@@ -5,11 +5,13 @@ import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { updateMyCard } from "@/app/actions/barber";
 import { ClockWidget } from "@/components/ClockWidget";
 import { ClientList } from "@/components/staff/ClientList";
+import { MediaStudio } from "@/components/staff/MediaStudio";
 import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
 import { ShopChat } from "@/components/staff/ShopChat";
 import { WalkinsWidget } from "@/components/staff/WalkinsWidget";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
+import { getSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay, formatMoney, formatTimestamp, rentStatus, thisWednesday, todayInShop } from "@/lib/format";
 
@@ -43,6 +45,7 @@ export default async function BarberPage() {
   ]);
   const barberNames = Object.fromEntries((shopBarbers ?? []).map((b) => [b.id, b.display_name]));
   const myName = viewer.profile.full_name ?? seat.display_name;
+  const siteUrl = await getSiteUrl();
   const rent = charges ?? [];
   const owed = rent.filter((c) => !c.paid_at).reduce((sum, c) => sum + c.amount_cents, 0);
   const nextDue = rent.filter((c) => !c.paid_at).sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
@@ -68,7 +71,7 @@ export default async function BarberPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Widgets", "Shop ops", "Clients"]}>
+      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Clients"]}>
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
 
@@ -139,6 +142,18 @@ export default async function BarberPage() {
               <div className="mt-4">{cardForm}</div>
             </details>
           )}
+        </div>
+
+        {/* Media: post to the shop's Instagram, or send a client their cut. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <PageTitle eyebrow={shop?.name} title="Media" />
+          <MediaStudio
+            barberName={seat.display_name}
+            shopName={shop?.name ?? ""}
+            bookingUrl={seat.booking_url}
+            siteUrl={siteUrl}
+            clients={(clients ?? []).map((c) => ({ name: c.name, phone: c.phone }))}
+          />
         </div>
 
         {/* Shop ops: supplies and the Wednesday cleaning list. */}
