@@ -2,13 +2,13 @@
 // UTC and rolls the date over in the evening.
 export const SHOP_TZ = "America/Los_Angeles";
 
-export function todayInShop(): string {
+export function todayInShop(at: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: SHOP_TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(at);
 }
 
 // "2026-11-01" -> "Nov 1, 2026" (a calendar date, so format it in UTC).

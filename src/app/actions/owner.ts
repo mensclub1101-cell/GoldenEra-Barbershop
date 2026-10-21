@@ -79,15 +79,20 @@ export async function addRentCharge(_prev: FormState, formData: FormData): Promi
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return { error: "Pick a due date." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("rent_charges").insert({
-    barber_id: barberId,
-    amount_cents: amountCents,
-    due_date: dueDate,
-    note: text(formData, "note") || null,
-  });
+  // "shop:<id>" charges every barber showing at that shop in one go.
+  let ids = [barberId];
+  if (barberId.startsWith("shop:")) {
+    const { data } = await supabase.from("barbers").select("id").eq("shop_id", barberId.slice(5)).eq("active", true);
+    ids = (data ?? []).map((b) => b.id);
+    if (ids.length === 0) return { error: "No barbers at that shop yet." };
+  }
+  const note = text(formData, "note") || null;
+  const { error } = await supabase
+    .from("rent_charges")
+    .insert(ids.map((id) => ({ barber_id: id, amount_cents: amountCents, due_date: dueDate, note })));
   if (error) return { error: error.message };
   done();
-  return { notice: "Rent charge added." };
+  return { notice: ids.length > 1 ? `Charged ${ids.length} barbers.` : "Rent charge added." };
 }
 
 export async function setRentPaid(chargeId: string, paid: boolean) {
