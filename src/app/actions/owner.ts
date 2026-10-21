@@ -57,6 +57,24 @@ export async function setBarberActive(barberId: string, active: boolean) {
   done();
 }
 
+// Set (or clear, with a blank amount) a barber's booth rent.
+export async function setRentRate(barberId: string, amount: string): Promise<{ error?: string }> {
+  await requireRole("owner");
+  const supabase = await createClient();
+  if (!amount.trim()) {
+    await supabase.from("rent_rates").delete().eq("barber_id", barberId);
+  } else {
+    const cents = parseDollars(amount);
+    if (cents === null || cents <= 0) return { error: "Enter an amount like 250 or 250.00." };
+    const { error } = await supabase
+      .from("rent_rates")
+      .upsert({ barber_id: barberId, amount_cents: cents, updated_at: new Date().toISOString() });
+    if (error) return { error: "Couldn't save. Try again." };
+  }
+  done();
+  return {};
+}
+
 export async function updateShop(shopId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("owner");
   const supabase = await createClient();
@@ -73,9 +91,10 @@ export async function addRentCharge(_prev: FormState, formData: FormData): Promi
   await requireRole("owner");
   const barberId = text(formData, "barber_id");
   const dueDate = text(formData, "due_date");
-  const amountCents = parseDollars(formData.get("amount"));
+  const amountText = text(formData, "amount");
+  const amountCents = amountText ? parseDollars(amountText) : null;
   if (!barberId) return { error: "Pick a barber." };
-  if (amountCents === null) return { error: "Enter an amount like 250 or 250.00." };
+  if (amountText && amountCents === null) return { error: "Enter an amount like 250 or 250.00." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return { error: "Pick a due date." };
 
   const supabase = await createClient();
@@ -86,13 +105,26 @@ export async function addRentCharge(_prev: FormState, formData: FormData): Promi
     ids = (data ?? []).map((b) => b.id);
     if (ids.length === 0) return { error: "No barbers at that shop yet." };
   }
+  // A blank amount means "their usual rent" from each barber's Edit.
+  let rates = new Map<string, number>();
+  if (amountCents === null) {
+    const { data } = await supabase.from("rent_rates").select("barber_id, amount_cents").in("barber_id", ids);
+    rates = new Map((data ?? []).map((r) => [r.barber_id, r.amount_cents]));
+    if (rates.size === 0) return { error: "Enter an amount, or set their rent with Edit on the Shop page." };
+  }
   const note = text(formData, "note") || null;
-  const { error } = await supabase
-    .from("rent_charges")
-    .insert(ids.map((id) => ({ barber_id: id, amount_cents: amountCents, due_date: dueDate, note })));
+  const rows = ids
+    .map((id) => ({ barber_id: id, amount_cents: amountCents ?? rates.get(id) ?? 0, due_date: dueDate, note }))
+    .filter((r) => r.amount_cents > 0);
+  const { error } = await supabase.from("rent_charges").insert(rows);
   if (error) return { error: error.message };
   done();
-  return { notice: ids.length > 1 ? `Charged ${ids.length} barbers.` : "Rent charge added." };
+  const skipped = ids.length - rows.length;
+  return {
+    notice:
+      (rows.length > 1 ? `Charged ${rows.length} barbers.` : "Rent charge added.") +
+      (skipped ? ` Skipped ${skipped} with no rent set.` : ""),
+  };
 }
 
 export async function setRentPaid(chargeId: string, paid: boolean) {

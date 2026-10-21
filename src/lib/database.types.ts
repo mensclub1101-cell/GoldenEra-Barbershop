@@ -252,6 +252,12 @@ export type Database = {
         Update: { assignee?: string | null; done_by?: string | null; last_done_on?: string | null };
         Relationships: [];
       };
+      rent_rates: {
+        Row: { amount_cents: number; barber_id: string; updated_at: string };
+        Insert: { amount_cents: number; barber_id: string; updated_at?: string };
+        Update: { amount_cents?: number; updated_at?: string };
+        Relationships: [];
+      };
       shop_messages: {
         Row: {
           author_id: string;

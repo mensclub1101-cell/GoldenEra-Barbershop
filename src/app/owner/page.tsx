@@ -11,6 +11,7 @@ import {
   updateShop,
 } from "@/app/actions/owner";
 import { SwipeDeck } from "@/components/SwipeDeck";
+import { EditRentButton } from "@/components/owner/EditRentButton";
 import { ShopTabs } from "@/components/owner/ShopTabs";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -29,12 +30,15 @@ export default async function OwnerPage() {
   const siteUrl = await getSiteUrl();
   const today = todayInShop();
 
-  const [{ data: shops }, { data: barbers }, { data: invites }, { data: charges }] = await Promise.all([
-    supabase.from("shops").select("*").order("sort"),
-    supabase.from("barbers").select("*").order("sort").order("display_name"),
-    supabase.from("invites").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()),
-    supabase.from("rent_charges").select("*").order("due_date", { ascending: false }).limit(100),
-  ]);
+  const [{ data: shops }, { data: barbers }, { data: invites }, { data: charges }, { data: rates }] = await Promise.all(
+    [
+      supabase.from("shops").select("*").order("sort"),
+      supabase.from("barbers").select("*").order("sort").order("display_name"),
+      supabase.from("invites").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()),
+      supabase.from("rent_charges").select("*").order("due_date", { ascending: false }).limit(100),
+      supabase.from("rent_rates").select("barber_id, amount_cents"),
+    ],
+  );
 
   const allShops = shops ?? [];
   const allBarbers = barbers ?? [];
@@ -42,6 +46,7 @@ export default async function OwnerPage() {
   const inviteFor = new Map((invites ?? []).map((i) => [i.barber_id, i]));
   const barberName = new Map(allBarbers.map((b) => [b.id, b.display_name]));
   const shopOf = new Map(allBarbers.map((b) => [b.id, b.shop_id]));
+  const rentOf = new Map((rates ?? []).map((r) => [r.barber_id, r.amount_cents]));
 
   const active = allBarbers.filter((b) => b.active);
   const joined = active.filter((b) => b.profile_id).length;
@@ -108,6 +113,12 @@ export default async function OwnerPage() {
                                     <StatusPill tone="muted">Not invited</StatusPill>
                                   )}
                                   <div className="ml-auto flex gap-2">
+                                    <EditRentButton
+                                      barberId={b.id}
+                                      name={b.display_name}
+                                      amountCents={rentOf.get(b.id) ?? null}
+                                      className={smallButton}
+                                    />
                                     {b.active && !b.profile_id && (
                                       <form action={createInvite.bind(null, b.id)}>
                                         <button className={smallButton}>{invite ? "New link" : "Invite"}</button>
@@ -118,6 +129,11 @@ export default async function OwnerPage() {
                                     </form>
                                   </div>
                                 </div>
+                                <p className="text-xs text-muted">
+                                  {rentOf.has(b.id)
+                                    ? `Booth rent ${formatMoney(rentOf.get(b.id)!)}`
+                                    : "No booth rent set"}
+                                </p>
                                 {b.active && !b.profile_id && invite && (
                                   <div>
                                     <CopyLink url={`${siteUrl}/join/${invite.token}`} />
@@ -181,6 +197,7 @@ export default async function OwnerPage() {
                     barbers={active.filter((b) => b.shop_id === shop.id)}
                     charges={allCharges.filter((c) => shopOf.get(c.barber_id) === shop.id)}
                     barberName={barberName}
+                    rentOf={rentOf}
                     today={today}
                   />
                 ),
@@ -199,12 +216,14 @@ function RentView({
   barbers,
   charges,
   barberName,
+  rentOf,
   today,
 }: {
   shop: Tables<"shops">;
   barbers: Tables<"barbers">[];
   charges: Tables<"rent_charges">[];
   barberName: Map<string, string>;
+  rentOf: Map<string, number>;
   today: string;
 }) {
   const unpaid = charges.filter((c) => !c.paid_at);
@@ -265,6 +284,9 @@ function RentView({
               <li key={barber.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{barber.display_name}</p>
+                  <p className="text-xs text-muted">
+                    {rentOf.has(barber.id) ? `Rent ${formatMoney(rentOf.get(barber.id)!)}` : "No rent set"}
+                  </p>
                 </div>
                 {owed === 0 ? (
                   <span className="text-sm text-muted">All paid</span>
@@ -289,11 +311,17 @@ function RentView({
                 {barbers.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.display_name}
+                    {rentOf.has(b.id) ? ` · ${formatMoney(rentOf.get(b.id)!)}` : ""}
                   </option>
                 ))}
               </select>
             </label>
-            <Field label="Amount ($)" name="amount" placeholder="250" required />
+            <Field
+              label="Amount ($)"
+              name="amount"
+              placeholder="Their rent"
+              hint="Leave blank to use each barber's rent."
+            />
             <Field label="Due" name="due_date" type="date" defaultValue={today} required />
             <div className="sm:col-span-3">
               <Field label="Note (optional)" name="note" placeholder="Week of Nov 3" />
