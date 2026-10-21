@@ -75,6 +75,10 @@ export default async function BarberPage() {
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
 
+          <Widget title="Walk-ins" aside={shop?.name}>
+            <WalkinsWidget shopId={seat.shop_id} seatId={seat.id} initial={walkins ?? []} barberNames={barberNames} />
+          </Widget>
+
           {!cardDone && (
             <Widget title="Finish your card" aside={shop?.name}>
               <p className="mb-4 text-sm text-ink-2">
@@ -84,10 +88,6 @@ export default async function BarberPage() {
               {cardForm}
             </Widget>
           )}
-
-          <Widget title="Walk-ins" aside={shop?.name}>
-            <WalkinsWidget shopId={seat.shop_id} seatId={seat.id} initial={walkins ?? []} barberNames={barberNames} />
-          </Widget>
 
           <Widget title="Shop chat" aside={shop?.name}>
             <ShopChat shopId={seat.shop_id} me={viewer.userId} myName={myName} initial={(messages ?? []).reverse()} />
