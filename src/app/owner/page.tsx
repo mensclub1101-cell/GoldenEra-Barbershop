@@ -8,7 +8,6 @@ import {
   deleteRentCharge,
   setBarberActive,
   setRentPaid,
-  updateShop,
 } from "@/app/actions/owner";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
@@ -50,36 +49,21 @@ export default async function OwnerPage() {
 
   const active = allBarbers.filter((b) => b.active);
   const joined = active.filter((b) => b.profile_id).length;
-  const unpaid = allCharges.filter((c) => !c.paid_at);
-  const late = unpaid.filter((c) => rentStatus(c, today) === "late");
-  const outstanding = unpaid.reduce((sum, c) => sum + c.amount_cents, 0);
 
   return (
     <AppShell viewer={viewer}>
       <SwipeDeck labels={["Shop", "Booth rent"]}>
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Shop</h1>
-          <p className="mt-2 text-ink-2">
-            Your barbers and shop info. Tap a shop to switch, swipe left for booth rent.
-          </p>
+          <p className="mt-2 text-ink-2">Your barbers at each shop. Tap a shop to switch, swipe left for booth rent.</p>
 
-          <dl className="mt-8 grid grid-cols-3 gap-3">
-            {[
-              { label: "Barbers joined", value: `${joined}/${active.length}` },
-              { label: "Rent owed", value: formatMoney(outstanding) },
-              {
-                label: "Late",
-                value: String(late.length),
-                alert: late.length > 0,
-              },
-            ].map((s) => (
-              <div key={s.label} className={`rounded-2xl p-4 ${s.alert ? "bg-red-50" : "bg-paper-2"}`}>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-muted">{s.label}</dt>
-                <dd className={`mt-1 font-display text-2xl font-semibold sm:text-3xl ${s.alert ? "text-red-800" : ""}`}>
-                  {s.value}
-                </dd>
-              </div>
-            ))}
+          <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-paper-2 p-4">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-muted">Barbers joined</dt>
+              <dd className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
+                {joined}/{active.length}
+              </dd>
+            </div>
           </dl>
 
           <div className="mt-8">
@@ -162,16 +146,6 @@ export default async function OwnerPage() {
                             </div>
                           </ActionForm>
                         </details>
-                      </Panel>
-
-                      {/* Shop info */}
-                      <Panel title="Shop info">
-                        <p className="-mt-2 mb-5 text-sm text-muted">Shown on the website&rsquo;s location card.</p>
-                        <ActionForm action={updateShop.bind(null, shop.id)} className="space-y-4">
-                          <Field label="Phone" name="phone" type="tel" defaultValue={shop.phone} />
-                          <Field label="Hours" name="hours" defaultValue={shop.hours} placeholder="Tue–Sat 9am–7pm" />
-                          <SubmitButton>Save</SubmitButton>
-                        </ActionForm>
                       </Panel>
                     </div>
                   ),

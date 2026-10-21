@@ -75,18 +75,6 @@ export async function setRentRate(barberId: string, amount: string): Promise<{ e
   return {};
 }
 
-export async function updateShop(shopId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireRole("owner");
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("shops")
-    .update({ phone: text(formData, "phone") || null, hours: text(formData, "hours") || null })
-    .eq("id", shopId);
-  if (error) return { error: error.message };
-  done();
-  return { notice: "Saved." };
-}
-
 export async function addRentCharge(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("owner");
   const barberId = text(formData, "barber_id");

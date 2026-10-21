@@ -10,9 +10,15 @@ export type Location = {
   region: string;
   postalCode: string;
   phone: string | null;
-  hours: string | null;
+  schedule: OpenHours[];
   photo: string | null;
 };
+
+// One line of a shop's weekly hours, in 24h time ("10:00"), with the full
+// day names schema.org expects.
+export type OpenHours = { label: string; days: string[]; open: string; close: string };
+
+const MON_THU = ["Monday", "Tuesday", "Wednesday", "Thursday"];
 
 export type Barber = {
   name: string;
@@ -51,8 +57,12 @@ export const locations: Location[] = [
     city: "Moreno Valley",
     region: "CA",
     postalCode: "92557",
-    phone: null,
-    hours: null,
+    phone: "(951) 867-9418",
+    schedule: [
+      { label: "Sun", days: ["Sunday"], open: "10:00", close: "17:00" },
+      { label: "Mon–Fri", days: [...MON_THU, "Friday"], open: "10:00", close: "19:00" },
+      { label: "Sat", days: ["Saturday"], open: "10:00", close: "20:00" },
+    ],
     photo: "/shop-pigeon-pass.jpg",
   },
   {
@@ -62,8 +72,13 @@ export const locations: Location[] = [
     city: "Moreno Valley",
     region: "CA",
     postalCode: "92555",
-    phone: null,
-    hours: null,
+    phone: "(951) 208-1102",
+    schedule: [
+      { label: "Sun", days: ["Sunday"], open: "10:00", close: "16:00" },
+      { label: "Mon–Thu", days: MON_THU, open: "10:00", close: "19:00" },
+      { label: "Fri", days: ["Friday"], open: "10:00", close: "20:00" },
+      { label: "Sat", days: ["Saturday"], open: "09:00", close: "20:00" },
+    ],
     photo: "/shop-moreno-beach.jpg",
   },
 ];
@@ -165,6 +180,12 @@ export function fullAddress(l: Location) {
 export function mapsUrl(l: Location) {
   const q = encodeURIComponent(`${brand.name}, ${fullAddress(l)}`);
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
+}
+
+// "17:00" -> "5pm", "09:30" -> "9:30am"
+export function clock(hhmm: string) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"}`;
 }
 
 export function telHref(phone: string) {

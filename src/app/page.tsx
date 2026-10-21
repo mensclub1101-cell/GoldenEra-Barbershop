@@ -11,6 +11,7 @@ import {
   mapsUrl,
   reviews,
   telHref,
+  clock,
   type Location,
 } from "@/lib/shop";
 
@@ -30,6 +31,12 @@ const structuredDataFor = (locations: Location[], siteUrl: string) => ({
     url: siteUrl,
     image: l.photo ? `${siteUrl}${l.photo}` : undefined,
     telephone: l.phone ?? undefined,
+    openingHoursSpecification: l.schedule.map((h) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: h.days,
+      opens: h.open,
+      closes: h.close,
+    })),
     address: {
       "@type": "PostalAddress",
       streetAddress: l.street,
@@ -77,9 +84,20 @@ function LocationCard({ location, index, barberCount }: { location: Location; in
           <br />
           {location.city}, {location.region} {location.postalCode}
         </address>
+        {location.schedule.length > 0 && (
+          <dl className="mt-4 grid max-w-xs grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
+            {location.schedule.map((h) => (
+              <div key={h.label} className="contents">
+                <dt className="text-paper/60">{h.label}</dt>
+                <dd className="text-paper/90">
+                  {clock(h.open)} – {clock(h.close)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         <p className="mt-3 text-sm text-paper/60">
           {barberCount} {barberCount === 1 ? "barber" : "barbers"}
-          {location.hours && <> · {location.hours}</>}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <a
