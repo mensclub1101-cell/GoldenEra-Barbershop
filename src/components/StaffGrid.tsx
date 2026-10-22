@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { scheduleLines } from "@/lib/schedule";
 import { telHref, type Barber, type Location } from "@/lib/shop";
 
 function initials(name: string) {
@@ -74,6 +75,23 @@ export function StaffGrid({ barbers, locations }: { barbers: Barber[]; locations
               )}
             </div>
             {b.specialty && <p className="mt-4 text-sm text-ink-2">{b.specialty}</p>}
+            {b.schedule && (
+              <div className="mt-4 text-sm">
+                {b.workingNow ? (
+                  <p className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-paper">
+                    <span className="h-1.5 w-1.5 rounded-full bg-paper" aria-hidden />
+                    Working now
+                  </p>
+                ) : (
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">Not in right now</p>
+                )}
+                {scheduleLines(b.schedule).map((line) => (
+                  <p key={line} className="text-ink-2">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
             <div className="mt-auto flex gap-2 pt-6">
               {b.bookingUrl ? (
                 <a

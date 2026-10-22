@@ -24,6 +24,7 @@ export type Database = {
           instagram: string | null;
           phone: string | null;
           profile_id: string | null;
+          schedule: Json | null;
           shop_id: string;
           sort: number;
           specialty: string | null;
@@ -37,6 +38,7 @@ export type Database = {
           instagram?: string | null;
           phone?: string | null;
           profile_id?: string | null;
+          schedule?: Json | null;
           shop_id: string;
           sort?: number;
           specialty?: string | null;
@@ -47,6 +49,7 @@ export type Database = {
           display_name?: string;
           instagram?: string | null;
           phone?: string | null;
+          schedule?: Json | null;
           shop_id?: string;
           sort?: number;
           specialty?: string | null;

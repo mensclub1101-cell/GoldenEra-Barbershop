@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { asSchedule } from "@/lib/schedule";
 import {
   barbers as fallbackBarbers,
   locations as fallbackLocations,
@@ -47,6 +48,7 @@ export async function getRoster(): Promise<Roster> {
         phone: b.phone,
         bookingUrl: b.booking_url,
         instagram: b.instagram,
+        schedule: asSchedule(b.schedule),
       })),
     };
   } catch (error) {

@@ -10,6 +10,9 @@ import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
 import { ShopChat } from "@/components/staff/ShopChat";
 import { WalkinsWidget } from "@/components/staff/WalkinsWidget";
 import { MenuSheet } from "@/components/MenuSheet";
+import { ScheduleFields } from "@/components/staff/ScheduleFields";
+import { asSchedule } from "@/lib/schedule";
+import { locations } from "@/lib/shop";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
@@ -35,7 +38,7 @@ export default async function BarberPage() {
     { data: cleaning },
     { data: clients },
   ] = await Promise.all([
-    supabase.from("shops").select("name").eq("id", seat.shop_id).single(),
+    supabase.from("shops").select("name, slug").eq("id", seat.shop_id).single(),
     supabase.from("rent_charges").select("*").eq("barber_id", seat.id).order("due_date", { ascending: false }),
     supabase.from("walkins").select("*").eq("shop_id", seat.shop_id).eq("status", "waiting").order("created_at"),
     supabase.from("barbers").select("id, display_name").eq("shop_id", seat.shop_id),
@@ -52,7 +55,9 @@ export default async function BarberPage() {
   const nextDue = rent.filter((c) => !c.paid_at).sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
 
   // The card is "done" once clients can reach the barber from it.
-  const cardDone = Boolean(seat.phone && seat.booking_url);
+  const mySchedule = asSchedule(seat.schedule);
+  const shopHours = locations.find((l) => l.slug === shop?.slug)?.schedule ?? [];
+  const cardDone = Boolean(seat.phone && seat.booking_url && mySchedule);
   const cardForm = (
     <ActionForm action={updateMyCard} className="space-y-4">
       <Field label="Name on the site" name="display_name" defaultValue={seat.display_name} required />
@@ -66,6 +71,7 @@ export default async function BarberPage() {
         hint="theCut, Booksy, Square, Setmore… Clients tap “Book with you” to open it."
       />
       <Field label="Instagram" name="instagram" defaultValue={seat.instagram} placeholder="@yourhandle" />
+      <ScheduleFields schedule={mySchedule} shopHours={shopHours} />
       <SubmitButton>Save</SubmitButton>
     </ActionForm>
   );
@@ -77,7 +83,7 @@ export default async function BarberPage() {
         <MenuSheet title="Edit my card" dot={!cardDone}>
           {!cardDone && (
             <p className="mb-4 rounded-xl bg-paper-2 px-4 py-3 text-sm">
-              Add your phone and booking link so clients can book you from the website.
+              Add your phone, booking link and schedule so clients can find and book you from the website.
             </p>
           )}
           {!seat.active && (

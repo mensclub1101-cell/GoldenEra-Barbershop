@@ -1,3 +1,5 @@
+import type { WeekSchedule } from "@/lib/schedule";
+
 // Single source of truth for shop content shown on the public site.
 // Anything marked `sample: true` is placeholder copy and must be replaced
 // with real data before launch.
@@ -27,6 +29,8 @@ export type Barber = {
   phone: string | null;
   bookingUrl: string | null; // Each booth-rent barber's own booking page
   instagram?: string | null; // Handle without the @
+  schedule?: WeekSchedule | null; // Their own weekly hours, from their card
+  workingNow?: boolean; // Worked out per request on the home page
   sample?: boolean;
 };
 

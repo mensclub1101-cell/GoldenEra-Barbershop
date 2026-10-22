@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { SiteHeader } from "@/components/SiteHeader";
 import { CheckInForm } from "@/components/CheckInForm";
 import type { Database } from "@/lib/database.types";
+import { asSchedule, isWorkingNow } from "@/lib/schedule";
 
 export const metadata: Metadata = { title: "Check in | Golden Era Barbershop" };
 export const dynamic = "force-dynamic";
@@ -18,12 +19,20 @@ export default async function CheckInPage({ searchParams }: PageProps<"/checkin"
   );
   const [{ data: shops }, { data: barbers }] = await Promise.all([
     supabase.from("shops").select("id, slug, name").order("sort"),
-    supabase.from("barbers").select("id, shop_id, display_name").eq("active", true).order("sort"),
+    supabase.from("barbers").select("id, shop_id, display_name, schedule").eq("active", true).order("sort"),
   ]);
+  const now = new Date();
   const list = (shops ?? []).map((s) => ({
     slug: s.slug,
     name: s.name,
-    barbers: (barbers ?? []).filter((b) => b.shop_id === s.id).map((b) => ({ id: b.id, name: b.display_name })),
+    // Only barbers in right now. Anyone who hasn't set a schedule yet still shows.
+    barbers: (barbers ?? [])
+      .filter((b) => b.shop_id === s.id)
+      .filter((b) => {
+        const schedule = asSchedule(b.schedule);
+        return !schedule || isWorkingNow(schedule, now);
+      })
+      .map((b) => ({ id: b.id, name: b.display_name })),
   }));
 
   return (

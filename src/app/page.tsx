@@ -3,6 +3,7 @@ import { SiteHeader, Wordmark } from "@/components/SiteHeader";
 import { HeroMedia } from "@/components/HeroMedia";
 import { StaffGrid } from "@/components/StaffGrid";
 import { getRoster } from "@/lib/roster";
+import { isWorkingNow } from "@/lib/schedule";
 import { getSiteUrl } from "@/lib/site-url";
 import {
   brand,
@@ -58,7 +59,17 @@ function SectionHeading({ eyebrow, title, children }: { eyebrow: string; title: 
   );
 }
 
-function LocationCard({ location, index, barberCount }: { location: Location; index: number; barberCount: number }) {
+function LocationCard({
+  location,
+  index,
+  barberCount,
+  workingNow,
+}: {
+  location: Location;
+  index: number;
+  barberCount: number;
+  workingNow: string[];
+}) {
   return (
     <article className="relative flex min-h-[26rem] flex-col justify-end overflow-hidden rounded-3xl bg-ink text-paper">
       {location.photo ? (
@@ -99,6 +110,12 @@ function LocationCard({ location, index, barberCount }: { location: Location; in
         <p className="mt-3 text-sm text-paper/60">
           {barberCount} {barberCount === 1 ? "barber" : "barbers"}
         </p>
+        {workingNow.length > 0 && (
+          <p className="mt-1 text-sm text-paper/90">
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-paper align-middle" aria-hidden />
+            Working now: {workingNow.join(", ")}
+          </p>
+        )}
         <div className="mt-6 grid gap-3 text-center sm:flex sm:flex-wrap">
           <a
             href={mapsUrl(location)}
@@ -141,7 +158,11 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default async function Home() {
-  const [{ locations, barbers }, siteUrl] = await Promise.all([getRoster(), getSiteUrl()]);
+  const [roster, siteUrl] = await Promise.all([getRoster(), getSiteUrl()]);
+  const { locations } = roster;
+  // "Working now" is worked out per request from each barber's own schedule.
+  const now = new Date();
+  const barbers = roster.barbers.map((b) => ({ ...b, workingNow: isWorkingNow(b.schedule ?? null, now) }));
   return (
     <>
       <script
@@ -199,6 +220,7 @@ export default async function Home() {
                 location={l}
                 index={i}
                 barberCount={barbers.filter((b) => b.location === l.slug).length}
+                workingNow={barbers.filter((b) => b.location === l.slug && b.workingNow).map((b) => b.name)}
               />
             ))}
           </div>
