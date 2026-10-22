@@ -171,9 +171,9 @@ export default async function BarberPage() {
           </Widget>
         </div>
 
-        {/* Booking: the barber's own booking site, right inside the app. */}
+        {/* Booking: the barber's own booking system, right inside the app. */}
         <div className="mx-auto max-w-md space-y-4">
-          <PageTitle eyebrow={seat.display_name} title="Booking" />
+          {!seat.booking_url && <PageTitle eyebrow={seat.display_name} title="Booking" />}
           {seat.booking_url ? (
             <ShopTabs
               tabs={[
@@ -236,20 +236,15 @@ function PageTitle({ eyebrow, title }: { eyebrow?: string; title: string }) {
 // that refuse to be framed (most logins do, and iPhone blocks their cookies).
 function EmbeddedSite({ url, title, openLabel }: { url: string; title: string; openLabel: string }) {
   return (
-    <div className="mt-4 space-y-4">
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block rounded-full bg-ink py-3 text-center text-sm font-semibold text-paper"
-      >
-        {openLabel}
-      </a>
-      <div className="overflow-hidden rounded-3xl border border-line bg-paper-2">
-        <iframe src={url} title={title} loading="lazy" className="block h-[calc(100dvh-23rem)] min-h-80 w-full" />
+    <div className="mt-3">
+      <div className="overflow-hidden rounded-3xl border border-line bg-ink">
+        <iframe src={url} title={title} loading="lazy" className="block h-[calc(100dvh-16.5rem)] min-h-96 w-full" />
       </div>
-      <p className="px-1 text-xs text-muted">
-        Some sites won&rsquo;t show inside other apps. If it&rsquo;s blank, tap the button above.
+      <p className="mt-2 px-1 text-center text-xs text-muted">
+        Blank?{" "}
+        <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-ink underline">
+          {openLabel}
+        </a>
       </p>
     </div>
   );
