@@ -42,6 +42,8 @@ function next30(todayKey: string) {
 function RentCalendar({ todayKey }: { todayKey: string }) {
   const days = next30(todayKey);
   const lead = days[0].getUTCDay();
+  // Days until the next Sunday (rent day); 0 when today is Sunday.
+  const untilSunday = (7 - lead) % 7;
   const first = monthFmt.format(days[0]);
   const last = monthFmt.format(days[days.length - 1]);
   return (
@@ -79,7 +81,7 @@ function RentCalendar({ todayKey }: { todayKey: string }) {
       </div>
       <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold leading-none text-paper/75">
         <span className="h-2 w-2 rounded-full" style={{ background: NEON }} />
-        Rent due
+        Rent due {untilSunday === 0 ? "today" : untilSunday === 1 ? "tomorrow" : `in ${untilSunday} days`}
       </p>
     </div>
   );
