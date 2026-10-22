@@ -116,7 +116,7 @@ function LocationCard({
             Working now: {workingNow.join(", ")}
           </p>
         )}
-        <div className="mt-6 grid gap-3 text-center sm:flex sm:flex-wrap">
+        <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap">
           <a
             href={mapsUrl(location)}
             target="_blank"
