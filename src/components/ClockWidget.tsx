@@ -25,23 +25,21 @@ function next30(todayKey: string) {
   return Array.from({ length: 30 }, (_, i) => new Date(Date.UTC(y, m - 1, d + i)));
 }
 
-function MonthStrip({ todayKey }: { todayKey: string }) {
+// Compact 30-day calendar for the empty space beside the time. Sundays are
+// booth-rent day, marked neon green.
+function RentCalendar({ todayKey }: { todayKey: string }) {
   const days = next30(todayKey);
   const lead = days[0].getUTCDay();
   const first = monthFmt.format(days[0]);
   const last = monthFmt.format(days[days.length - 1]);
   return (
-    <div className="mt-6">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-paper/60">
-        Next 30 days · {first === last ? first : `${first} – ${last}`}
+    <div className="w-[8.25rem] shrink-0" aria-label="Next 30 days, rent due Sundays">
+      <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/60">
+        {first === last ? first : `${first} – ${last}`}
       </p>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs tabular-nums">
+      <div className="grid grid-cols-7 gap-[3px] text-center text-[10px] font-semibold leading-none tabular-nums">
         {["S", "M", "T", "W", "T", "F", "S"].map((l, i) => (
-          <span
-            key={i}
-            className="pb-1 font-semibold"
-            style={i === 0 ? { color: NEON } : { color: "rgb(255 255 255 / 0.4)" }}
-          >
+          <span key={i} className="pb-0.5" style={{ color: i === 0 ? NEON : "rgb(255 255 255 / 0.4)" }}>
             {l}
           </span>
         ))}
@@ -50,23 +48,24 @@ function MonthStrip({ todayKey }: { todayKey: string }) {
         ))}
         {days.map((day, i) => {
           const sunday = day.getUTCDay() === 0;
-          const date = day.getUTCDate();
           return (
             <span
               key={day.toISOString()}
-              aria-label={i === 0 ? "Today" : undefined}
-              className={`grid h-7 place-items-center rounded-full font-semibold ${
-                i === 0 ? "bg-paper text-ink" : sunday ? "" : "text-paper/80"
+              aria-label={i === 0 ? "Today" : sunday ? "Rent due" : undefined}
+              className={`grid h-4 place-items-center rounded-full ${
+                i === 0 ? "bg-paper text-ink" : sunday ? "text-ink" : "text-paper/80"
               }`}
-              style={
-                sunday ? { boxShadow: `inset 0 0 0 1.5px ${NEON}`, ...(i === 0 ? {} : { color: NEON }) } : undefined
-              }
+              style={sunday ? (i === 0 ? { boxShadow: `0 0 0 2px ${NEON}` } : { background: NEON }) : undefined}
             >
-              {date === 1 ? monthFmt.format(day) : date}
+              {day.getUTCDate()}
             </span>
           );
         })}
       </div>
+      <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-semibold text-paper/70">
+        <span className="h-2 w-2 rounded-full" style={{ background: NEON }} />
+        Rent due
+      </p>
     </div>
   );
 }
@@ -78,13 +77,17 @@ export function ClockWidget({ name }: { name: string }) {
   const [time, period] = now ? timeFmt.format(now).split(" ") : ["", ""];
   return (
     <div className="rounded-3xl bg-ink p-6 text-paper">
-      <p className="text-sm font-semibold text-paper/60">{now ? dateFmt.format(now) : " "}</p>
-      <p className="mt-1 text-lg font-semibold">{name}</p>
-      <p className="mt-3 font-display text-7xl font-semibold leading-none tracking-tight tabular-nums">
-        {time || " "}
-        <span className="ml-2 text-2xl font-medium text-paper/70">{period}</span>
-      </p>
-      {now && <MonthStrip todayKey={todayInShop(now)} />}
+      <p className="text-sm font-semibold text-paper/60">{now ? dateFmt.format(now) : " "}</p>
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold">{name}</p>
+          <p className="mt-3 whitespace-nowrap font-display text-6xl font-semibold leading-none tracking-tight tabular-nums">
+            {time || " "}
+            <span className="ml-1.5 text-xl font-medium text-paper/70">{period}</span>
+          </p>
+        </div>
+        {now && <RentCalendar todayKey={todayInShop(now)} />}
+      </div>
     </div>
   );
 }

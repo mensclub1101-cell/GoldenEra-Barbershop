@@ -5,8 +5,17 @@ import type { Viewer } from "@/lib/auth";
 
 const roleLabel = { owner: "Owner", barber: "Barber", client: "Client" } as const;
 
-// Signed-in chrome for the owner, barber and client areas.
-export function AppShell({ viewer, children }: { viewer: Viewer; children: React.ReactNode }) {
+// Signed-in chrome for the owner, barber and client areas. `menu` goes to the
+// right of Log out (the barber app's ☰ sheet).
+export function AppShell({
+  viewer,
+  menu,
+  children,
+}: {
+  viewer: Viewer;
+  menu?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const { role } = viewer.profile;
   const links = [
     ...(role === "owner" ? [{ href: "/owner", label: "Shop" }] : []),
@@ -39,6 +48,7 @@ export function AppShell({ viewer, children }: { viewer: Viewer; children: React
                 Log out
               </button>
             </form>
+            {menu}
           </nav>
         </div>
       </header>

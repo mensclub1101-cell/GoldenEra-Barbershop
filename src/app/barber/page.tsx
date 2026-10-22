@@ -9,6 +9,7 @@ import { MediaStudio } from "@/components/staff/MediaStudio";
 import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
 import { ShopChat } from "@/components/staff/ShopChat";
 import { WalkinsWidget } from "@/components/staff/WalkinsWidget";
+import { MenuSheet } from "@/components/MenuSheet";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
@@ -70,7 +71,24 @@ export default async function BarberPage() {
   );
 
   return (
-    <AppShell viewer={viewer}>
+    <AppShell
+      viewer={viewer}
+      menu={
+        <MenuSheet title="Edit my card" dot={!cardDone}>
+          {!cardDone && (
+            <p className="mb-4 rounded-xl bg-paper-2 px-4 py-3 text-sm">
+              Add your phone and booking link so clients can book you from the website.
+            </p>
+          )}
+          {!seat.active && (
+            <p className="mb-4 rounded-xl bg-paper-2 px-4 py-3 text-sm">
+              Your card is hidden from the website right now. Ask the owner to show it.
+            </p>
+          )}
+          {cardForm}
+        </MenuSheet>
+      }
+    >
       <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients"]}>
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
@@ -79,15 +97,6 @@ export default async function BarberPage() {
             <WalkinsWidget shopId={seat.shop_id} seatId={seat.id} initial={walkins ?? []} barberNames={barberNames} />
           </Widget>
 
-          {!cardDone && (
-            <Widget title="Finish your card" aside={shop?.name}>
-              <p className="mb-4 text-sm text-ink-2">
-                Add your phone and booking link so clients can book you from the website. This goes away once
-                it&rsquo;s filled in.
-              </p>
-              {cardForm}
-            </Widget>
-          )}
 
           <Widget title="Shop chat" aside={shop?.name}>
             <ShopChat shopId={seat.shop_id} me={viewer.userId} myName={myName} initial={(messages ?? []).reverse()} />
@@ -128,20 +137,6 @@ export default async function BarberPage() {
               </details>
             )}
           </Widget>
-
-          {cardDone && (
-            <details className="rounded-3xl border border-line bg-paper p-5">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.25em] text-muted">
-                Edit my card
-              </summary>
-              {!seat.active && (
-                <p className="mt-3 rounded-xl bg-paper-2 px-4 py-3 text-sm">
-                  Your card is hidden from the website right now. Ask the owner to show it.
-                </p>
-              )}
-              <div className="mt-4">{cardForm}</div>
-            </details>
-          )}
         </div>
 
         {/* Media: post to the shop's Instagram, or send a client their cut. */}
