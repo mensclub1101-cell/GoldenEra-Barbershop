@@ -81,7 +81,10 @@ function RentCalendar({ todayKey }: { todayKey: string }) {
       </div>
       <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold leading-none text-paper/75">
         <span className="h-2 w-2 rounded-full" style={{ background: NEON }} />
-        Rent due {untilSunday === 0 ? "today" : untilSunday === 1 ? "tomorrow" : `in ${untilSunday} days`}
+        Rent due
+        <span style={{ color: NEON }}>
+          {untilSunday === 0 ? "Today" : untilSunday === 1 ? "Tomorrow" : `In ${untilSunday} days`}
+        </span>
       </p>
     </div>
   );
