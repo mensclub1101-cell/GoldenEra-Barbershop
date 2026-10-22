@@ -33,13 +33,16 @@ function RentCalendar({ todayKey }: { todayKey: string }) {
   const first = monthFmt.format(days[0]);
   const last = monthFmt.format(days[days.length - 1]);
   return (
-    <div className="w-[8.25rem] shrink-0" aria-label="Next 30 days, rent due Sundays">
-      <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/60">
+    <div
+      className="absolute right-5 top-5 flex w-[6.75rem] flex-col justify-between bottom-5"
+      aria-label="Next 30 days, rent due Sundays"
+    >
+      <p className="text-center text-[9px] font-semibold uppercase leading-none tracking-[0.15em] text-paper/60">
         {first === last ? first : `${first} – ${last}`}
       </p>
-      <div className="grid grid-cols-7 gap-[3px] text-center text-[10px] font-semibold leading-none tabular-nums">
+      <div className="grid grid-cols-7 gap-x-[2px] gap-y-[3px] text-center text-[9px] font-semibold leading-none tabular-nums">
         {["S", "M", "T", "W", "T", "F", "S"].map((l, i) => (
-          <span key={i} className="pb-0.5" style={{ color: i === 0 ? NEON : "rgb(255 255 255 / 0.4)" }}>
+          <span key={i} style={{ color: i === 0 ? NEON : "rgb(255 255 255 / 0.4)" }}>
             {l}
           </span>
         ))}
@@ -52,42 +55,39 @@ function RentCalendar({ todayKey }: { todayKey: string }) {
             <span
               key={day.toISOString()}
               aria-label={i === 0 ? "Today" : sunday ? "Rent due" : undefined}
-              className={`grid h-4 place-items-center rounded-full ${
+              className={`mx-auto grid h-[13px] w-[13px] place-items-center rounded-full ${
                 i === 0 ? "bg-paper text-ink" : sunday ? "text-ink" : "text-paper/80"
               }`}
-              style={sunday ? (i === 0 ? { boxShadow: `0 0 0 2px ${NEON}` } : { background: NEON }) : undefined}
+              style={sunday ? (i === 0 ? { boxShadow: `0 0 0 1.5px ${NEON}` } : { background: NEON }) : undefined}
             >
               {day.getUTCDate()}
             </span>
           );
         })}
       </div>
-      <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-semibold text-paper/70">
-        <span className="h-2 w-2 rounded-full" style={{ background: NEON }} />
+      <p className="flex items-center justify-center gap-1 text-[9px] font-semibold leading-none text-paper/70">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: NEON }} />
         Rent due
       </p>
     </div>
   );
 }
 
-// Shop-time clock for the widgets page, with who's logged in.
+// Shop-time clock for the widgets page, with who's logged in. The calendar is
+// pinned in the empty space on the right, so the card keeps its size.
 export function ClockWidget({ name }: { name: string }) {
   const second = useSyncExternalStore(subscribe, getSecond, getServerSecond);
   const now = second === null ? null : new Date(second * 1000);
   const [time, period] = now ? timeFmt.format(now).split(" ") : ["", ""];
   return (
-    <div className="rounded-3xl bg-ink p-6 text-paper">
+    <div className="relative rounded-3xl bg-ink p-6 pr-[8.25rem] text-paper">
       <p className="text-sm font-semibold text-paper/60">{now ? dateFmt.format(now) : " "}</p>
-      <div className="mt-1 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-lg font-semibold">{name}</p>
-          <p className="mt-3 whitespace-nowrap font-display text-6xl font-semibold leading-none tracking-tight tabular-nums">
-            {time || " "}
-            <span className="ml-1.5 text-xl font-medium text-paper/70">{period}</span>
-          </p>
-        </div>
-        {now && <RentCalendar todayKey={todayInShop(now)} />}
-      </div>
+      <p className="mt-1 truncate text-lg font-semibold">{name}</p>
+      <p className="mt-3 whitespace-nowrap font-display text-6xl font-semibold leading-none tracking-tight tabular-nums min-[380px]:text-7xl">
+        {time || " "}
+        <span className="ml-2 text-2xl font-medium text-paper/70">{period}</span>
+      </p>
+      {now && <RentCalendar todayKey={todayInShop(now)} />}
     </div>
   );
 }
