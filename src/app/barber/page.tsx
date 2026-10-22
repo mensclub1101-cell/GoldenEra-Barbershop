@@ -13,6 +13,8 @@ import { MenuSheet } from "@/components/MenuSheet";
 import { ScheduleFields } from "@/components/staff/ScheduleFields";
 import { asSchedule } from "@/lib/schedule";
 import { locations } from "@/lib/shop";
+import { bookingProvider, type BookingProvider } from "@/lib/booking-providers";
+import { ShopTabs } from "@/components/owner/ShopTabs";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { requireRole } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
@@ -56,6 +58,7 @@ export default async function BarberPage() {
 
   // The card is "done" once clients can reach the barber from it.
   const mySchedule = asSchedule(seat.schedule);
+  const provider = bookingProvider(seat.booking_url);
   const shopHours = locations.find((l) => l.slug === shop?.slug)?.schedule ?? [];
   const cardDone = Boolean(seat.phone && seat.booking_url && mySchedule);
   const cardForm = (
@@ -172,27 +175,24 @@ export default async function BarberPage() {
         <div className="mx-auto max-w-md space-y-4">
           <PageTitle eyebrow={seat.display_name} title="Booking" />
           {seat.booking_url ? (
-            <>
-              <a
-                href={seat.booking_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-full bg-ink py-3 text-center text-sm font-semibold text-paper"
-              >
-                Open full screen
-              </a>
-              <div className="overflow-hidden rounded-3xl border border-line bg-paper-2">
-                <iframe
-                  src={seat.booking_url}
-                  title="My booking schedule"
-                  loading="lazy"
-                  className="block h-[calc(100dvh-20rem)] min-h-80 w-full"
-                />
-              </div>
-              <p className="px-1 text-xs text-muted">
-                Some booking apps won&rsquo;t show inside other sites. If it&rsquo;s blank, tap Open full screen.
-              </p>
-            </>
+            <ShopTabs
+              tabs={[
+                ...(provider
+                  ? [
+                      {
+                        id: "login",
+                        label: `${provider.name} login`,
+                        content: <ProviderLogin provider={provider} />,
+                      },
+                    ]
+                  : []),
+                {
+                  id: "page",
+                  label: "My booking page",
+                  content: <EmbeddedSite url={seat.booking_url} title="My booking page" openLabel="Open full screen" />,
+                },
+              ]}
+            />
           ) : (
             <Widget title="Add your booking link">
               <p className="mb-4 text-sm text-ink-2">Add your theCut, Booksy, Square or Setmore link and your schedule shows up here.</p>
@@ -230,4 +230,41 @@ function PageTitle({ eyebrow, title }: { eyebrow?: string; title: string }) {
       <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">{title}</h1>
     </div>
   );
+}
+
+// Another site shown inside the app, with a full-screen fallback for sites
+// that refuse to be framed (most logins do, and iPhone blocks their cookies).
+function EmbeddedSite({ url, title, openLabel }: { url: string; title: string; openLabel: string }) {
+  return (
+    <div className="mt-4 space-y-4">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block rounded-full bg-ink py-3 text-center text-sm font-semibold text-paper"
+      >
+        {openLabel}
+      </a>
+      <div className="overflow-hidden rounded-3xl border border-line bg-paper-2">
+        <iframe src={url} title={title} loading="lazy" className="block h-[calc(100dvh-23rem)] min-h-80 w-full" />
+      </div>
+      <p className="px-1 text-xs text-muted">
+        Some sites won&rsquo;t show inside other apps. If it&rsquo;s blank, tap the button above.
+      </p>
+    </div>
+  );
+}
+
+// The barber's own booking-system login (Squire, Square, Setmore, Booksy), or
+// a note for app-only systems like theCut.
+function ProviderLogin({ provider }: { provider: BookingProvider }) {
+  if (!provider.loginUrl) {
+    return (
+      <div className="mt-4 rounded-3xl border border-line p-5">
+        <p className="text-sm text-ink-2">{provider.appNote}</p>
+        <p className="mt-2 text-sm text-ink-2">Open the {provider.name} app to see your schedule and messages.</p>
+      </div>
+    );
+  }
+  return <EmbeddedSite url={provider.loginUrl} title={`${provider.name} login`} openLabel={`Open my ${provider.name} login`} />;
 }
