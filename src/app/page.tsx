@@ -99,7 +99,7 @@ function LocationCard({ location, index, barberCount }: { location: Location; in
         <p className="mt-3 text-sm text-paper/60">
           {barberCount} {barberCount === 1 ? "barber" : "barbers"}
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 grid gap-3 text-center sm:flex sm:flex-wrap">
           <a
             href={mapsUrl(location)}
             target="_blank"
