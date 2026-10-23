@@ -32,6 +32,7 @@ export default async function BarberPage() {
   const today = todayInShop();
   const [
     { data: shop },
+    { data: allShops },
     { data: charges },
     { data: walkins },
     { data: shopBarbers },
@@ -41,6 +42,7 @@ export default async function BarberPage() {
     { data: clients },
   ] = await Promise.all([
     supabase.from("shops").select("name, slug").eq("id", seat.shop_id).single(),
+    supabase.from("shops").select("id, name, staff_login_url").order("sort"),
     supabase.from("rent_charges").select("*").eq("barber_id", seat.id).order("due_date", { ascending: false }),
     supabase.from("walkins").select("*").eq("shop_id", seat.shop_id).eq("status", "waiting").order("created_at"),
     supabase.from("barbers").select("id, display_name").eq("shop_id", seat.shop_id),
@@ -173,32 +175,38 @@ export default async function BarberPage() {
 
         {/* Booking: the barber's own booking system, right inside the app. */}
         <div className="mx-auto max-w-md space-y-4">
-          {!seat.booking_url && <PageTitle eyebrow={seat.display_name} title="Booking" />}
-          {seat.booking_url ? (
-            <ShopTabs
-              tabs={[
-                ...(provider
-                  ? [
-                      {
-                        id: "login",
-                        label: `${provider.name} login`,
-                        content: <ProviderLogin provider={provider} />,
-                      },
-                    ]
-                  : []),
-                {
-                  id: "page",
-                  label: "My booking page",
-                  content: <EmbeddedSite url={seat.booking_url} title="My booking page" openLabel="Open full screen" />,
-                },
-              ]}
-            />
-          ) : (
-            <Widget title="Add your booking link">
-              <p className="mb-4 text-sm text-ink-2">Add your theCut, Booksy, Square or Setmore link and your schedule shows up here.</p>
-              {cardForm}
-            </Widget>
-          )}
+          <ShopTabs
+            compact
+            tabs={[
+              {
+                id: "barber",
+                label: "Barber",
+                content: seat.booking_url ? (
+                  <BarberLogin provider={provider} bookingUrl={seat.booking_url} />
+                ) : (
+                  <div className="mt-3">
+                    <Widget title="Add your booking link">
+                      <p className="mb-4 text-sm text-ink-2">
+                        Add your theCut, Booksy, Square, Setmore or Squire link and your login shows up here.
+                      </p>
+                      {cardForm}
+                    </Widget>
+                  </div>
+                ),
+              },
+              ...(allShops ?? []).map((s) => ({
+                id: s.id,
+                label: s.name,
+                content: s.staff_login_url ? (
+                  <EmbeddedSite url={s.staff_login_url} title={`${s.name} login`} openLabel={`Open ${s.name} login`} />
+                ) : (
+                  <p className="mt-3 rounded-3xl border border-line p-5 text-sm text-ink-2">
+                    The owner hasn&rsquo;t added {s.name}&rsquo;s booking login yet.
+                  </p>
+                ),
+              })),
+            ]}
+          />
         </div>
 
         {/* Client list: walk-ins this barber saved, plus ones added by hand. */}
@@ -250,16 +258,33 @@ function EmbeddedSite({ url, title, openLabel }: { url: string; title: string; o
   );
 }
 
-// The barber's own booking-system login (Squire, Square, Setmore, Booksy), or
-// a note for app-only systems like theCut.
-function ProviderLogin({ provider }: { provider: BookingProvider }) {
-  if (!provider.loginUrl) {
+// The barber's own booking-system login (Squire, Square, Setmore, Booksy); a
+// note for app-only systems like theCut; or their booking page when we don't
+// recognize the system. Their client booking page is always a tap away.
+function BarberLogin({ provider, bookingUrl }: { provider: BookingProvider | null; bookingUrl: string }) {
+  const bookingLink = (
+    <p className="mt-1 text-center text-xs text-muted">
+      <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="underline">
+        See my booking page
+      </a>
+    </p>
+  );
+  if (provider && !provider.loginUrl) {
     return (
-      <div className="mt-4 rounded-3xl border border-line p-5">
+      <div className="mt-3 rounded-3xl border border-line p-5">
         <p className="text-sm text-ink-2">{provider.appNote}</p>
         <p className="mt-2 text-sm text-ink-2">Open the {provider.name} app to see your schedule and messages.</p>
+        {bookingLink}
       </div>
     );
   }
-  return <EmbeddedSite url={provider.loginUrl} title={`${provider.name} login`} openLabel={`Open my ${provider.name} login`} />;
+  if (!provider?.loginUrl) {
+    return <EmbeddedSite url={bookingUrl} title="My booking page" openLabel="Open full screen" />;
+  }
+  return (
+    <>
+      <EmbeddedSite url={provider.loginUrl} title={`${provider.name} login`} openLabel={`Open my ${provider.name} login`} />
+      {bookingLink}
+    </>
+  );
 }

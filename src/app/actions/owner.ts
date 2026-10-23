@@ -50,6 +50,24 @@ export async function createInvite(barberId: string) {
   done();
 }
 
+// The shop's booking-system sign-in page, shown as a tab on every barber's
+// Booking page. Blank clears it.
+export async function setShopLogin(shopId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("owner");
+  const raw = text(formData, "staff_login_url");
+  const url = urlOrNull(raw);
+  if (url && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(url)) return { error: "That doesn't look like a web address." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shops")
+    .update({ staff_login_url: url?.replace(/^http:\/\//i, "https://") ?? null })
+    .eq("id", shopId);
+  if (error) return { error: "Couldn't save. Try again." };
+  revalidatePath("/owner");
+  revalidatePath("/barber");
+  return { notice: url ? "Saved. Barbers see it on their Booking page." : "Removed." };
+}
+
 export async function setBarberActive(barberId: string, active: boolean) {
   await requireRole("owner");
   const supabase = await createClient();

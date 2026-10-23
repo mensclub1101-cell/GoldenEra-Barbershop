@@ -4,7 +4,13 @@ import { useState } from "react";
 
 // Pill buttons at the top to flip between shops. Every shop's view stays
 // rendered (just hidden), so a half-filled form survives a switch.
-export function ShopTabs({ tabs }: { tabs: { id: string; label: string; content: React.ReactNode }[] }) {
+export function ShopTabs({
+  tabs,
+  compact,
+}: {
+  tabs: { id: string; label: string; content: React.ReactNode }[];
+  compact?: boolean; // tighter pills so three fit on one phone line
+}) {
   const [current, setCurrent] = useState(tabs[0]?.id);
   return (
     <div>
@@ -16,7 +22,9 @@ export function ShopTabs({ tabs }: { tabs: { id: string; label: string; content:
             role="tab"
             aria-selected={t.id === current}
             onClick={() => setCurrent(t.id)}
-            className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+            className={`rounded-full border py-2 text-xs font-semibold uppercase transition ${
+              compact ? "px-3 tracking-[0.1em]" : "px-4 tracking-[0.2em]"
+            } ${
               t.id === current ? "border-ink bg-ink text-paper" : "border-line text-ink hover:border-ink"
             }`}
           >

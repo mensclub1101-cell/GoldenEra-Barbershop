@@ -171,12 +171,14 @@ export type Database = {
           region: string;
           slug: string;
           sort: number;
+          staff_login_url: string | null;
           street: string;
         };
         Insert: never;
         Update: {
           hours?: string | null;
           phone?: string | null;
+          staff_login_url?: string | null;
         };
         Relationships: [];
       };

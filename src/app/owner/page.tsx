@@ -8,6 +8,7 @@ import {
   deleteRentCharge,
   setBarberActive,
   setRentPaid,
+  setShopLogin,
 } from "@/app/actions/owner";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
@@ -146,6 +147,22 @@ export default async function OwnerPage() {
                             </div>
                           </ActionForm>
                         </details>
+                      </Panel>
+
+                      <Panel title="Shop booking login">
+                        <p className="-mt-2 mb-4 text-sm text-muted">
+                          The sign-in page for {shop.name}&rsquo;s booking system (for example
+                          app.getsquire.com/login). Every barber sees it as a tab on their Booking page.
+                        </p>
+                        <ActionForm action={setShopLogin.bind(null, shop.id)} className="space-y-4">
+                          <Field
+                            label="Login page link"
+                            name="staff_login_url"
+                            defaultValue={shop.staff_login_url}
+                            placeholder="app.getsquire.com/login"
+                          />
+                          <SubmitButton>Save</SubmitButton>
+                        </ActionForm>
                       </Panel>
                     </div>
                   ),
