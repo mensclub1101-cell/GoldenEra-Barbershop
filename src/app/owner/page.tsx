@@ -9,6 +9,10 @@ import {
   setBarberActive,
   setRentPaid,
   setShopLogin,
+  markRestocked,
+  addReview,
+  setReviewVisible,
+  deleteReview,
 } from "@/app/actions/owner";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
@@ -30,15 +34,23 @@ export default async function OwnerPage() {
   const siteUrl = await getSiteUrl();
   const today = todayInShop();
 
-  const [{ data: shops }, { data: barbers }, { data: invites }, { data: charges }, { data: rates }] = await Promise.all(
-    [
-      supabase.from("shops").select("*").order("sort"),
-      supabase.from("barbers").select("*").order("sort").order("display_name"),
-      supabase.from("invites").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()),
-      supabase.from("rent_charges").select("*").order("due_date", { ascending: false }).limit(100),
-      supabase.from("rent_rates").select("barber_id, amount_cents"),
-    ],
-  );
+  const [
+    { data: shops },
+    { data: barbers },
+    { data: invites },
+    { data: charges },
+    { data: rates },
+    { data: lowSupplies },
+    { data: reviews },
+  ] = await Promise.all([
+    supabase.from("shops").select("*").order("sort"),
+    supabase.from("barbers").select("*").order("sort").order("display_name"),
+    supabase.from("invites").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()),
+    supabase.from("rent_charges").select("*").order("due_date", { ascending: false }).limit(100),
+    supabase.from("rent_rates").select("barber_id, amount_cents"),
+    supabase.from("supplies").select("*").neq("status", "full").order("name"),
+    supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+  ]);
 
   const allShops = shops ?? [];
   const allBarbers = barbers ?? [];
@@ -53,7 +65,7 @@ export default async function OwnerPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Shop", "Booth rent"]}>
+      <SwipeDeck labels={["Shop", "Booth rent", "Supplies", "Reviews"]}>
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Shop</h1>
           <p className="mt-2 text-ink-2">Your barbers at each shop. Tap a shop to switch, swipe left for booth rent.</p>
@@ -194,6 +206,120 @@ export default async function OwnerPage() {
                 ),
               }))}
             />
+          </div>
+        </div>
+
+        {/* Supplies: what barbers marked Low or Out, so the owner knows what to order. */}
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Supplies</h1>
+          <p className="mt-2 text-ink-2">
+            What barbers marked Low or Out. Order it, then tap Restocked when it comes in.
+          </p>
+          <div className="mt-6">
+            <ShopTabs
+              tabs={allShops.map((shop) => {
+                const items = (lowSupplies ?? [])
+                  .filter((s) => s.shop_id === shop.id)
+                  .sort((a, b) => Number(b.status === "out") - Number(a.status === "out"));
+                return {
+                  id: shop.id,
+                  label: items.length ? `${shop.name} (${items.length})` : shop.name,
+                  content: <SupplyOrderList shopName={shop.name} items={items} />,
+                };
+              })}
+            />
+          </div>
+        </div>
+
+        {/* Reviews: real client reviews the owner adds; visible ones show on the website. */}
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Reviews</h1>
+          <p className="mt-2 text-ink-2">Add real client reviews. They show on the website right away.</p>
+          <div className="mt-8 space-y-6">
+            <Panel title="Add a review">
+              <ActionForm action={addReview} resetOnSuccess className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">Shop</span>
+                  <select name="shop_id" className={inputClass} required>
+                    {allShops.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">Stars</span>
+                  <select name="rating" className={inputClass} defaultValue="5" required>
+                    {[5, 4, 3, 2, 1].map((n) => (
+                      <option key={n} value={n}>
+                        {"★".repeat(n)} ({n})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Field label="Client name" name="author" placeholder="Marcus T." required />
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">Where it&rsquo;s from</span>
+                  <select name="source" className={inputClass} defaultValue="Google">
+                    {["Google", "Yelp", "Instagram", "In person", "Other"].map((src) => (
+                      <option key={src} value={src}>
+                        {src}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className="mb-1.5 block text-sm font-semibold">What they said</span>
+                  <textarea
+                    name="body"
+                    required
+                    maxLength={600}
+                    rows={4}
+                    placeholder="Best fade I've had in Moreno Valley…"
+                    className={inputClass}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <SubmitButton>Add review</SubmitButton>
+                </div>
+              </ActionForm>
+            </Panel>
+
+            <Panel title="On the website" aside={<span className="text-sm text-muted">{(reviews ?? []).filter((r) => r.visible).length} showing</span>}>
+              {(reviews ?? []).length === 0 ? (
+                <p className="text-sm text-muted">
+                  No reviews yet. Copy a few from Google or Yelp and add them above. The Reviews section on the
+                  website shows them as soon as you do.
+                </p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {(reviews ?? []).map((r) => (
+                    <li key={r.id} className={`py-4 ${r.visible ? "" : "opacity-50"}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold">
+                          {r.author} <span className="text-sm">{"★".repeat(r.rating)}</span>
+                        </p>
+                        {!r.visible && <StatusPill tone="muted">Hidden</StatusPill>}
+                      </div>
+                      <p className="mt-1 text-sm text-ink-2">&ldquo;{r.body}&rdquo;</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {allShops.find((s) => s.id === r.shop_id)?.name}
+                        {r.source && ` · ${r.source}`} · added {formatTimestamp(r.created_at)}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <form action={setReviewVisible.bind(null, r.id, !r.visible)}>
+                          <button className={smallButton}>{r.visible ? "Hide" : "Show"}</button>
+                        </form>
+                        <form action={deleteReview.bind(null, r.id)}>
+                          <button className="px-2 text-xs font-semibold text-muted underline hover:text-ink">Delete</button>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
           </div>
         </div>
       </SwipeDeck>
@@ -360,5 +486,37 @@ function RentView({
         </Panel>
       </div>
     </>
+  );
+}
+
+// One shop's order list: Out first, then Low, each with a Restocked button.
+function SupplyOrderList({ shopName, items }: { shopName: string; items: Tables<"supplies">[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="mt-6 rounded-3xl border border-line p-5 text-sm text-ink-2">
+        Nothing to order at {shopName}. Everything is marked Full.
+      </p>
+    );
+  }
+  return (
+    <ul className="mt-6 divide-y divide-line rounded-3xl border border-line">
+      {items.map((s) => (
+        <li key={s.id} className="flex items-center gap-3 px-5 py-4">
+          <span
+            aria-hidden
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${s.status === "out" ? "bg-red-500" : "bg-amber-400"}`}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{s.name}</p>
+            <p className="text-xs text-muted">
+              {s.status === "out" ? "Out" : "Low"} · marked {formatTimestamp(s.updated_at)}
+            </p>
+          </div>
+          <form action={markRestocked.bind(null, s.id)}>
+            <button className={smallButton}>Restocked</button>
+          </form>
+        </li>
+      ))}
+    </ul>
   );
 }

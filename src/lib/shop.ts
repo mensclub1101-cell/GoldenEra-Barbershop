@@ -153,30 +153,6 @@ export const barbers: Barber[] = [
   },
 ];
 
-export const reviews: Review[] = [
-  {
-    author: "Sample review",
-    body: "Placeholder text. Replace with a real Google or Yelp review the owner approves.",
-    rating: 5,
-    location: "pigeon-pass",
-    sample: true,
-  },
-  {
-    author: "Sample review",
-    body: "Placeholder text. Replace with a real Google or Yelp review the owner approves.",
-    rating: 5,
-    location: "moreno-beach",
-    sample: true,
-  },
-  {
-    author: "Sample review",
-    body: "Placeholder text. Replace with a real Google or Yelp review the owner approves.",
-    rating: 5,
-    location: "pigeon-pass",
-    sample: true,
-  },
-];
-
 export function fullAddress(l: Location) {
   return `${l.street}, ${l.city}, ${l.region} ${l.postalCode}`;
 }

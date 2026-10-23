@@ -263,6 +263,21 @@ export type Database = {
         Update: { amount_cents?: number; updated_at?: string };
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          author: string;
+          body: string;
+          created_at: string;
+          id: string;
+          rating: number;
+          shop_id: string;
+          source: string | null;
+          visible: boolean;
+        };
+        Insert: { author: string; body: string; rating: number; shop_id: string; source?: string | null; visible?: boolean };
+        Update: { visible?: boolean };
+        Relationships: [];
+      };
       shop_messages: {
         Row: {
           author_id: string;

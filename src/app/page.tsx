@@ -10,7 +10,6 @@ import {
   fullAddress,
   locationName,
   mapsUrl,
-  reviews,
   telHref,
   clock,
   type Location,
@@ -19,8 +18,6 @@ import {
 // Barbers and shop info come from the database, so render per request.
 export const dynamic = "force-dynamic";
 
-// Real reviews only. Sample entries in shop.ts never reach the page.
-const liveReviews = reviews.filter((r) => !r.sample);
 
 // schema.org data so Google can show both shops as one business with two locations.
 const structuredDataFor = (locations: Location[], siteUrl: string) => ({
@@ -159,7 +156,8 @@ function Stars({ rating }: { rating: number }) {
 
 export default async function Home() {
   const [roster, siteUrl] = await Promise.all([getRoster(), getSiteUrl()]);
-  const { locations } = roster;
+  // Real reviews the owner added in the owner app (visible ones only).
+  const { locations, reviews: liveReviews } = roster;
   // "Working now" is worked out per request from each barber's own schedule.
   const now = new Date();
   const barbers = roster.barbers.map((b) => ({ ...b, workingNow: isWorkingNow(b.schedule ?? null, now) }));

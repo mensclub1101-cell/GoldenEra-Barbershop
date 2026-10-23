@@ -149,3 +149,47 @@ export async function deleteRentCharge(chargeId: string) {
   await supabase.from("rent_charges").delete().eq("id", chargeId);
   done();
 }
+
+// A barber marked it Low/Out; the order came in.
+export async function markRestocked(supplyId: string) {
+  const viewer = await requireRole("owner");
+  const supabase = await createClient();
+  await supabase
+    .from("supplies")
+    .update({ status: "full", updated_at: new Date().toISOString(), updated_by: viewer.userId })
+    .eq("id", supplyId);
+  revalidatePath("/owner");
+  revalidatePath("/barber");
+}
+
+export async function addReview(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("owner");
+  const shopId = text(formData, "shop_id");
+  const author = text(formData, "author").slice(0, 60);
+  const body = text(formData, "body").slice(0, 600);
+  const rating = Number(text(formData, "rating"));
+  const source = text(formData, "source").slice(0, 20) || null;
+  if (!shopId) return { error: "Pick a shop." };
+  if (!author) return { error: "Add the client's name (first name is fine)." };
+  if (!body) return { error: "Paste in what they said." };
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { error: "Pick 1 to 5 stars." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("reviews").insert({ shop_id: shopId, author, body, rating, source });
+  if (error) return { error: "Couldn't save. Try again." };
+  done();
+  return { notice: "Review added. It's on the website now." };
+}
+
+export async function setReviewVisible(reviewId: string, visible: boolean) {
+  await requireRole("owner");
+  const supabase = await createClient();
+  await supabase.from("reviews").update({ visible }).eq("id", reviewId);
+  done();
+}
+
+export async function deleteReview(reviewId: string) {
+  await requireRole("owner");
+  const supabase = await createClient();
+  await supabase.from("reviews").delete().eq("id", reviewId);
+  done();
+}

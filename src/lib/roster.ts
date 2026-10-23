@@ -6,9 +6,10 @@ import {
   locations as fallbackLocations,
   type Barber,
   type Location,
+  type Review,
 } from "@/lib/shop";
 
-export type Roster = { locations: Location[]; barbers: Barber[] };
+export type Roster = { locations: Location[]; barbers: Barber[]; reviews: Review[] };
 
 // Public roster for the landing page: active barbers and shop info, as the
 // owner and barbers maintain them in the app. Anonymous read; RLS limits it
@@ -21,12 +22,16 @@ export async function getRoster(): Promise<Roster> {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    const [shops, seats] = await Promise.all([
+    const [shops, seats, reviews] = await Promise.all([
       supabase.from("shops").select("*").order("sort"),
       supabase.from("barbers").select("*").eq("active", true).order("sort").order("display_name"),
+      // RLS only returns visible reviews to the public.
+      supabase.from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false }).limit(9),
     ]);
     if (shops.error) throw shops.error;
     if (seats.error) throw seats.error;
+    // Reviews are a nice-to-have: log a failure but still show the roster.
+    if (reviews.error) console.error("getRoster: reviews", reviews.error);
 
     const slugById = new Map(shops.data.map((s) => [s.id, s.slug]));
     return {
@@ -50,9 +55,15 @@ export async function getRoster(): Promise<Roster> {
         instagram: b.instagram,
         schedule: asSchedule(b.schedule),
       })),
+      reviews: (reviews.data ?? []).map((r) => ({
+        author: r.author,
+        body: r.body,
+        rating: Math.min(5, Math.max(1, r.rating)) as Review["rating"],
+        location: slugById.get(r.shop_id) ?? "",
+      })),
     };
   } catch (error) {
     console.error("getRoster: falling back to static roster", error);
-    return { locations: fallbackLocations, barbers: fallbackBarbers };
+    return { locations: fallbackLocations, barbers: fallbackBarbers, reviews: [] };
   }
 }
