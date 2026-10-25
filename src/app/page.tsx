@@ -153,15 +153,21 @@ function ReviewTicker({ reviews }: { reviews: Review[] }) {
       <li
         key={`${copy}-${i}`}
         aria-hidden={copy === 1 || undefined}
-        className="flex w-[19rem] shrink-0 flex-col gap-2 border-l border-paper/15 px-6 py-5 sm:w-[24rem]"
+        className="w-[19rem] shrink-0 border-l border-paper/15 sm:w-[24rem]"
       >
-        <span className="text-sm tracking-[0.2em] text-paper" aria-label={`${r.rating} out of 5 stars`}>
-          {"★".repeat(r.rating)}
-        </span>
-        <p className="line-clamp-2 text-sm text-paper/85">&ldquo;{r.body}&rdquo;</p>
-        <p className="text-xs uppercase tracking-wider text-paper/55">
-          {r.author} · {locationName(r.location)}
-        </p>
+        <a
+          href="#reviews"
+          tabIndex={copy === 1 ? -1 : undefined}
+          className="flex h-full flex-col gap-2 px-6 py-5 transition hover:bg-paper/5"
+        >
+          <span className="text-sm tracking-[0.2em] text-paper" aria-label={`${r.rating} out of 5 stars`}>
+            {"★".repeat(r.rating)}
+          </span>
+          <p className="line-clamp-2 text-sm text-paper/85">&ldquo;{r.body}&rdquo;</p>
+          <p className="text-xs uppercase tracking-wider text-paper/55">
+            {r.author} · {locationName(r.location)}
+          </p>
+        </a>
       </li>
     ));
   return (
@@ -203,9 +209,9 @@ export default async function Home() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative flex min-h-[calc(100svh-4rem)] items-end overflow-hidden bg-ink text-paper">
+        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-ink text-paper">
           <HeroMedia />
-          <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-32 sm:px-6 sm:pb-24">
+          <div className="relative mx-auto w-full max-w-6xl px-4 pb-28 pt-12 sm:px-6 sm:pb-32">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-paper/70 sm:tracking-[0.4em]">
               {brand.city} · Two locations
             </p>
@@ -232,6 +238,12 @@ export default async function Home() {
                 className="rounded-full border border-paper/40 px-6 py-3 text-sm font-semibold uppercase tracking-wider text-paper transition hover:border-paper"
               >
                 Meet the barbers
+              </a>
+              <a
+                href="#social"
+                className="rounded-full border border-paper/40 px-6 py-3 text-sm font-semibold uppercase tracking-wider text-paper transition hover:border-paper"
+              >
+                Social media
               </a>
             </div>
           </div>
@@ -336,7 +348,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-line">
+      <footer id="social" className="border-t border-line">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
           <Wordmark />
           {locations.map((l) => (
