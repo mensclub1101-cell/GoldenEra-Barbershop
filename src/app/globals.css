@@ -30,15 +30,7 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-/* Barber-pole stripe used as a decorative band and on cards without a photo. */
-.stripes {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--ink) 0 14px,
-    var(--paper) 14px 28px
-  );
-}
-
+/* Barber-pole stripe on location cards without a photo. */
 .stripes-soft {
   background-image: repeating-linear-gradient(
     -45deg,
@@ -47,3 +39,18 @@ body {
   );
 }
 
+/* Review strip under the hero: drifts left to right, pauses on hover. */
+@keyframes review-drift {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.review-ticker-track {
+  animation: review-drift 80s linear infinite;
+}
+.review-ticker:hover .review-ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-ticker { overflow-x: auto; }
+  .review-ticker-track { animation: none; }
+}

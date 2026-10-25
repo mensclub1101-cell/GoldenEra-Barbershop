@@ -13,6 +13,7 @@ import {
   telHref,
   clock,
   type Location,
+  type Review,
 } from "@/lib/shop";
 
 // Barbers and shop info come from the database, so render per request.
@@ -142,6 +143,36 @@ function LocationCard({
   );
 }
 
+// Real reviews drifting left to right under the hero. The list is rendered
+// twice so the loop is seamless; reduced-motion users get a scrollable row.
+function ReviewTicker({ reviews }: { reviews: Review[] }) {
+  if (reviews.length === 0) return null;
+  const items = (copy: number) =>
+    reviews.map((r, i) => (
+      <li
+        key={`${copy}-${i}`}
+        aria-hidden={copy === 1 || undefined}
+        className="flex w-[19rem] shrink-0 flex-col gap-2 border-l border-paper/15 px-6 py-5 sm:w-[24rem]"
+      >
+        <span className="text-sm tracking-[0.2em] text-paper" aria-label={`${r.rating} out of 5 stars`}>
+          {"★".repeat(r.rating)}
+        </span>
+        <p className="line-clamp-2 text-sm text-paper/85">&ldquo;{r.body}&rdquo;</p>
+        <p className="text-xs uppercase tracking-wider text-paper/55">
+          {r.author} · {locationName(r.location)}
+        </p>
+      </li>
+    ));
+  return (
+    <section aria-label="What clients say" className="review-ticker overflow-hidden bg-ink text-paper">
+      <ul className="review-ticker-track flex w-max">
+        {items(0)}
+        {items(1)}
+      </ul>
+    </section>
+  );
+}
+
 function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
@@ -204,7 +235,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
-        <div aria-hidden className="stripes h-3" />
+        <ReviewTicker reviews={liveReviews} />
 
         {/* Locations */}
         <section id="locations" className="scroll-mt-16 mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
