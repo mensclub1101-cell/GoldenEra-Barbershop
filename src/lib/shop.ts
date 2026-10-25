@@ -15,6 +15,7 @@ export type Location = {
   schedule: OpenHours[];
   photo: string | null;
   yelpReviewUrl: string | null;
+  instagram: string | null;
 };
 
 // One line of a shop's weekly hours, in 24h time ("10:00"), with the full
@@ -52,7 +53,6 @@ export const brand = {
   wordmark: "Golden Era",
   tagline: "Classic cuts. Clean fades. Two shops in Moreno Valley.",
   city: "Moreno Valley, CA",
-  instagram: "goldenera_barbershop1",
 };
 
 export const locations: Location[] = [
@@ -71,6 +71,7 @@ export const locations: Location[] = [
     ],
     photo: "/shop-pigeon-pass.jpg",
     yelpReviewUrl: "https://www.yelp.com/writeareview/biz/PZWGTEQbXm-pjliHd8y6CA",
+    instagram: "goldenera_barbershop1",
   },
   {
     slug: "moreno-beach",
@@ -88,6 +89,7 @@ export const locations: Location[] = [
     ],
     photo: "/shop-moreno-beach.jpg",
     yelpReviewUrl: "https://www.yelp.com/writeareview/biz/wmtDvccyvRZIPNNjRwpoVA",
+    instagram: "goldenera_barbershop2",
   },
 ];
 
