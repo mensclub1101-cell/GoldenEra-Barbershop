@@ -65,125 +65,7 @@ export default async function OwnerPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Shop", "Booth rent", "Supplies", "Reviews"]}>
-        <div>
-          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Shop</h1>
-          <p className="mt-2 text-ink-2">Your barbers at each shop. Tap a shop to switch, swipe left for booth rent.</p>
-
-          <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-paper-2 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-muted">Barbers joined</dt>
-              <dd className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
-                {joined}/{active.length}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="mt-8">
-            <ShopTabs
-              tabs={allShops.map((shop) => {
-                const seats = allBarbers.filter((b) => b.shop_id === shop.id);
-                return {
-                  id: shop.id,
-                  label: shop.name,
-                  content: (
-                    <div className="mt-6 space-y-6">
-                      {/* Roster */}
-                      <Panel title="Barbers">
-                        {seats.length === 0 && <p className="text-sm text-muted">No barbers yet.</p>}
-                        <ul className="divide-y divide-line rounded-2xl border border-line">
-                          {seats.map((b) => {
-                            const invite = inviteFor.get(b.id);
-                            return (
-                              <li key={b.id} className="space-y-3 p-4">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className={`font-semibold ${b.active ? "" : "text-muted line-through"}`}>
-                                    {b.display_name}
-                                  </span>
-                                  {!b.active ? (
-                                    <StatusPill tone="muted">Hidden</StatusPill>
-                                  ) : b.profile_id ? (
-                                    <StatusPill tone="ink">Joined</StatusPill>
-                                  ) : invite ? (
-                                    <StatusPill tone="muted">Invited</StatusPill>
-                                  ) : (
-                                    <StatusPill tone="muted">Not invited</StatusPill>
-                                  )}
-                                  <div className="ml-auto flex gap-2">
-                                    <EditRentButton
-                                      barberId={b.id}
-                                      name={b.display_name}
-                                      amountCents={rentOf.get(b.id) ?? null}
-                                      className={smallButton}
-                                    />
-                                    {b.active && !b.profile_id && (
-                                      <form action={createInvite.bind(null, b.id)}>
-                                        <button className={smallButton}>{invite ? "New link" : "Invite"}</button>
-                                      </form>
-                                    )}
-                                    <form action={setBarberActive.bind(null, b.id, !b.active)}>
-                                      <button className={smallButton}>{b.active ? "Hide" : "Show"}</button>
-                                    </form>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-muted">
-                                  {rentOf.has(b.id)
-                                    ? `Booth rent ${formatMoney(rentOf.get(b.id)!)}`
-                                    : "No booth rent set"}
-                                </p>
-                                {b.active && !b.profile_id && invite && (
-                                  <div>
-                                    <CopyLink url={`${siteUrl}/join/${invite.token}`} />
-                                    <p className="mt-1 text-xs text-muted">
-                                      Text this to {b.display_name}. Works once, expires{" "}
-                                      {formatTimestamp(invite.expires_at)}.
-                                    </p>
-                                  </div>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-
-                        <details className="mt-6 rounded-2xl bg-paper-2 p-4">
-                          <summary className="cursor-pointer text-sm font-semibold">+ Add a barber</summary>
-                          <ActionForm action={addBarber} resetOnSuccess className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <input type="hidden" name="shop_id" value={shop.id} />
-                            <Field label="Name" name="display_name" required />
-                            <Field label="Phone" name="phone" type="tel" placeholder="(951) 555-0123" />
-                            <div className="sm:col-span-2">
-                              <Field label="Booking link" name="booking_url" placeholder="book.thecut.co/…" />
-                            </div>
-                            <div className="sm:col-span-2">
-                              <SubmitButton>Add barber to {shop.name}</SubmitButton>
-                            </div>
-                          </ActionForm>
-                        </details>
-                      </Panel>
-
-                      <Panel title="Shop booking login">
-                        <p className="-mt-2 mb-4 text-sm text-muted">
-                          The sign-in page for {shop.name}&rsquo;s booking system (for example
-                          app.getsquire.com/login). Every barber sees it as a tab on their Booking page.
-                        </p>
-                        <ActionForm action={setShopLogin.bind(null, shop.id)} className="space-y-4">
-                          <Field
-                            label="Login page link"
-                            name="staff_login_url"
-                            defaultValue={shop.staff_login_url}
-                            placeholder="app.getsquire.com/login"
-                          />
-                          <SubmitButton>Save</SubmitButton>
-                        </ActionForm>
-                      </Panel>
-                    </div>
-                  ),
-                };
-              })}
-            />
-          </div>
-        </div>
-
+      <SwipeDeck labels={["Booth rent", "Supplies", "Reviews", "Shop"]}>
         {/* Booth rent: who owes, add charges, mark paid. */}
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Booth rent</h1>
@@ -320,6 +202,124 @@ export default async function OwnerPage() {
                 </ul>
               )}
             </Panel>
+          </div>
+        </div>
+
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Shop</h1>
+          <p className="mt-2 text-ink-2">Your barbers at each shop. Tap a shop to switch.</p>
+
+          <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-paper-2 p-4">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-muted">Barbers joined</dt>
+              <dd className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
+                {joined}/{active.length}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-8">
+            <ShopTabs
+              tabs={allShops.map((shop) => {
+                const seats = allBarbers.filter((b) => b.shop_id === shop.id);
+                return {
+                  id: shop.id,
+                  label: shop.name,
+                  content: (
+                    <div className="mt-6 space-y-6">
+                      {/* Roster */}
+                      <Panel title="Barbers">
+                        {seats.length === 0 && <p className="text-sm text-muted">No barbers yet.</p>}
+                        <ul className="divide-y divide-line rounded-2xl border border-line">
+                          {seats.map((b) => {
+                            const invite = inviteFor.get(b.id);
+                            return (
+                              <li key={b.id} className="space-y-3 p-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`font-semibold ${b.active ? "" : "text-muted line-through"}`}>
+                                    {b.display_name}
+                                  </span>
+                                  {!b.active ? (
+                                    <StatusPill tone="muted">Hidden</StatusPill>
+                                  ) : b.profile_id ? (
+                                    <StatusPill tone="ink">Joined</StatusPill>
+                                  ) : invite ? (
+                                    <StatusPill tone="muted">Invited</StatusPill>
+                                  ) : (
+                                    <StatusPill tone="muted">Not invited</StatusPill>
+                                  )}
+                                  <div className="ml-auto flex gap-2">
+                                    <EditRentButton
+                                      barberId={b.id}
+                                      name={b.display_name}
+                                      amountCents={rentOf.get(b.id) ?? null}
+                                      className={smallButton}
+                                    />
+                                    {b.active && !b.profile_id && (
+                                      <form action={createInvite.bind(null, b.id)}>
+                                        <button className={smallButton}>{invite ? "New link" : "Invite"}</button>
+                                      </form>
+                                    )}
+                                    <form action={setBarberActive.bind(null, b.id, !b.active)}>
+                                      <button className={smallButton}>{b.active ? "Hide" : "Show"}</button>
+                                    </form>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted">
+                                  {rentOf.has(b.id)
+                                    ? `Booth rent ${formatMoney(rentOf.get(b.id)!)}`
+                                    : "No booth rent set"}
+                                </p>
+                                {b.active && !b.profile_id && invite && (
+                                  <div>
+                                    <CopyLink url={`${siteUrl}/join/${invite.token}`} />
+                                    <p className="mt-1 text-xs text-muted">
+                                      Text this to {b.display_name}. Works once, expires{" "}
+                                      {formatTimestamp(invite.expires_at)}.
+                                    </p>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+
+                        <details className="mt-6 rounded-2xl bg-paper-2 p-4">
+                          <summary className="cursor-pointer text-sm font-semibold">+ Add a barber</summary>
+                          <ActionForm action={addBarber} resetOnSuccess className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <input type="hidden" name="shop_id" value={shop.id} />
+                            <Field label="Name" name="display_name" required />
+                            <Field label="Phone" name="phone" type="tel" placeholder="(951) 555-0123" />
+                            <div className="sm:col-span-2">
+                              <Field label="Booking link" name="booking_url" placeholder="book.thecut.co/…" />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <SubmitButton>Add barber to {shop.name}</SubmitButton>
+                            </div>
+                          </ActionForm>
+                        </details>
+                      </Panel>
+
+                      <Panel title="Shop booking login">
+                        <p className="-mt-2 mb-4 text-sm text-muted">
+                          The sign-in page for {shop.name}&rsquo;s booking system (for example
+                          app.getsquire.com/login). Every barber sees it as a tab on their Booking page.
+                        </p>
+                        <ActionForm action={setShopLogin.bind(null, shop.id)} className="space-y-4">
+                          <Field
+                            label="Login page link"
+                            name="staff_login_url"
+                            defaultValue={shop.staff_login_url}
+                            placeholder="app.getsquire.com/login"
+                          />
+                          <SubmitButton>Save</SubmitButton>
+                        </ActionForm>
+                      </Panel>
+                    </div>
+                  ),
+                };
+              })}
+            />
           </div>
         </div>
       </SwipeDeck>
