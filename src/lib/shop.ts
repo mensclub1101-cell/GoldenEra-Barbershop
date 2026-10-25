@@ -14,6 +14,7 @@ export type Location = {
   phone: string | null;
   schedule: OpenHours[];
   photo: string | null;
+  yelpReviewUrl: string | null;
 };
 
 // One line of a shop's weekly hours, in 24h time ("10:00"), with the full
@@ -68,6 +69,7 @@ export const locations: Location[] = [
       { label: "Sat", days: ["Saturday"], open: "10:00", close: "20:00" },
     ],
     photo: "/shop-pigeon-pass.jpg",
+    yelpReviewUrl: "https://www.yelp.com/writeareview/biz/PZWGTEQbXm-pjliHd8y6CA",
   },
   {
     slug: "moreno-beach",
@@ -84,6 +86,7 @@ export const locations: Location[] = [
       { label: "Sat", days: ["Saturday"], open: "09:00", close: "20:00" },
     ],
     photo: "/shop-moreno-beach.jpg",
+    yelpReviewUrl: "https://www.yelp.com/writeareview/biz/wmtDvccyvRZIPNNjRwpoVA",
   },
 ];
 

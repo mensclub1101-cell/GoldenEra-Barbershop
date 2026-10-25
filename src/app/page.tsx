@@ -283,17 +283,28 @@ export default async function Home() {
             </ul>
           )}
           <div className={`flex flex-wrap gap-3 ${liveReviews.length > 0 ? "mt-8" : ""}`}>
-            {locations.map((l) => (
+            {locations.flatMap((l) => [
               <a
-                key={l.slug}
+                key={`${l.slug}-google`}
                 href={mapsUrl(l)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-full border border-ink px-5 py-2.5 text-sm font-semibold transition hover:bg-ink hover:text-paper"
               >
                 Review {l.name} on Google
-              </a>
-            ))}
+              </a>,
+              l.yelpReviewUrl && (
+                <a
+                  key={`${l.slug}-yelp`}
+                  href={l.yelpReviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border border-ink px-5 py-2.5 text-sm font-semibold transition hover:bg-ink hover:text-paper"
+                >
+                  Review {l.name} on Yelp
+                </a>
+              ),
+            ])}
           </div>
         </section>
 

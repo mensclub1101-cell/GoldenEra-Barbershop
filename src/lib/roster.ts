@@ -45,6 +45,7 @@ export async function getRoster(): Promise<Roster> {
         phone: s.phone,
         schedule: fallbackLocations.find((l) => l.slug === s.slug)?.schedule ?? [],
         photo: s.photo_url ?? fallbackLocations.find((l) => l.slug === s.slug)?.photo ?? null,
+        yelpReviewUrl: fallbackLocations.find((l) => l.slug === s.slug)?.yelpReviewUrl ?? null,
       })),
       barbers: seats.data.map((b) => ({
         name: b.display_name,
