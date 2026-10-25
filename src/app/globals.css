@@ -45,7 +45,7 @@ body {
   to { transform: translateX(0); }
 }
 .review-ticker-track {
-  animation: review-drift 80s linear infinite;
+  animation: review-drift 55s linear infinite;
 }
 .review-ticker:hover .review-ticker-track {
   animation-play-state: paused;
