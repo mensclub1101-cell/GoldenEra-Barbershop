@@ -30,6 +30,7 @@ const structuredDataFor = (locations: Location[], siteUrl: string) => ({
     url: siteUrl,
     image: l.photo ? `${siteUrl}${l.photo}` : undefined,
     telephone: l.phone ?? undefined,
+    sameAs: [`https://www.instagram.com/${brand.instagram}/`],
     openingHoursSpecification: l.schedule.map((h) => ({
       "@type": "OpeningHoursSpecification",
       dayOfWeek: h.days,
@@ -337,7 +338,17 @@ export default async function Home() {
 
       <footer className="border-t border-line">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
-          <Wordmark />
+          <div className="flex flex-col items-start gap-4">
+            <Wordmark />
+            <a
+              href={`https://www.instagram.com/${brand.instagram}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border border-ink px-4 py-2 text-sm font-semibold transition hover:bg-ink hover:text-paper"
+            >
+              Instagram @{brand.instagram}
+            </a>
+          </div>
           {locations.map((l) => (
             <div key={l.slug} className="text-sm">
               <p className="font-semibold uppercase tracking-wider">{l.name}</p>

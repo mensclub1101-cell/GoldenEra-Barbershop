@@ -52,6 +52,7 @@ export const brand = {
   wordmark: "Golden Era",
   tagline: "Classic cuts. Clean fades. Two shops in Moreno Valley.",
   city: "Moreno Valley, CA",
+  instagram: "goldenera_barbershop1",
 };
 
 export const locations: Location[] = [
