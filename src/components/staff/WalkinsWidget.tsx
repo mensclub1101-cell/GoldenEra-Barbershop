@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 import { subscribeAsUser } from "@/lib/supabase/browser";
 import { closeWalkin, saveWalkinAsClient } from "@/app/actions/staff";
 import type { Tables } from "@/lib/database.types";
+import { clock } from "@/lib/shop";
 
 type Walkin = Tables<"walkins">;
 
@@ -147,7 +148,9 @@ export function WalkinsWidget({
                   </p>
                   <span className="text-xs text-muted">{waited(w.created_at, now)}</span>
                 </div>
-                <p className={`text-xs ${w.barber_id === seatId ? "font-semibold text-ink" : "text-muted"}`}>{forWho}</p>
+                <p className={`text-xs ${w.barber_id === seatId ? "font-semibold text-ink" : "text-muted"}`}>
+                  {forWho} · <span className="font-semibold text-ink">{w.eta ? `ETA ${clock(w.eta.slice(0, 5))}` : "Here now"}</span>
+                </p>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <a href={`tel:${w.phone}`} className="rounded-full bg-ink py-2 text-center text-xs font-semibold text-paper">
                     Call

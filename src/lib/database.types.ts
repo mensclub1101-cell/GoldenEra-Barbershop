@@ -186,6 +186,7 @@ export type Database = {
         Row: {
           barber_id: string | null;
           created_at: string;
+          eta: string | null;
           handled_at: string | null;
           handled_by: string | null;
           id: string;
@@ -318,6 +319,10 @@ export type Database = {
     Functions: {
       check_in: {
         Args: { p_shop: string; p_name: string; p_phone: string; p_barber?: string };
+        Returns: number;
+      };
+      walkin_check_in: {
+        Args: { p_shop: string; p_name: string; p_phone: string; p_barber?: string; p_eta?: string };
         Returns: number;
       };
       claim_invite: {

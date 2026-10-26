@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { SiteHeader } from "@/components/SiteHeader";
 import { CheckInForm } from "@/components/CheckInForm";
 import type { Database } from "@/lib/database.types";
-import { asSchedule, isWorkingNow } from "@/lib/schedule";
+import { asSchedule, isWorkingNow, walkinSlots } from "@/lib/schedule";
+import { locations } from "@/lib/shop";
 
 export const metadata: Metadata = { title: "Check in | Golden Era Barbershop" };
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function CheckInPage({ searchParams }: PageProps<"/checkin"
   const list = (shops ?? []).map((s) => ({
     slug: s.slug,
     name: s.name,
+    ...walkinSlots(locations.find((l) => l.slug === s.slug)?.schedule ?? [], now),
     // Only barbers in right now. Anyone who hasn't set a schedule yet still shows.
     barbers: (barbers ?? [])
       .filter((b) => b.shop_id === s.id)

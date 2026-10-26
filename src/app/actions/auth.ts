@@ -97,11 +97,13 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
 export async function checkIn(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
   const barber = text(formData, "barber_id");
-  const { data: place, error } = await supabase.rpc("check_in", {
+  const eta = text(formData, "eta");
+  const { data: place, error } = await supabase.rpc("walkin_check_in", {
     p_shop: text(formData, "shop"),
     p_name: text(formData, "name"),
     p_phone: text(formData, "phone"),
     ...(barber ? { p_barber: barber } : {}),
+    ...(eta ? { p_eta: eta } : {}),
   });
   if (error) return { error: error.message };
   return {
