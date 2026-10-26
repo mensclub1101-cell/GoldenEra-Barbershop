@@ -49,6 +49,12 @@ export default async function JoinPage({ params }: PageProps<"/join/[token]">) {
     <Card>
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">You&rsquo;re invited</p>
       <h1 className="mt-2 font-display text-3xl font-semibold uppercase tracking-wide">Join as {who}</h1>
+      <p className="mt-2 text-sm text-muted">
+        New to the app?{" "}
+        <Link href={invite.role === "owner" ? "/guide?for=owner" : "/guide"} className="font-semibold text-ink underline">
+          See how it works
+        </Link>
+      </p>
 
       {viewer ? (
         <ActionForm action={acceptInvite.bind(null, token)} className="mt-6 space-y-4">

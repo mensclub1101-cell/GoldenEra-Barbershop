@@ -32,7 +32,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               Create an account
             </Link>
           </p>
-          <p className="mt-2 text-sm text-muted">New barber? Use the invite link the owner sent you.</p>
+          <p className="mt-2 text-sm text-muted">
+            New barber? Use the invite link the owner sent you.{" "}
+            <Link href="/guide" className="font-semibold text-ink underline">
+              How the app works
+            </Link>
+          </p>
         </div>
       </main>
     </>
