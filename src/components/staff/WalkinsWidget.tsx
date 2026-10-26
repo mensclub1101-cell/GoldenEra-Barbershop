@@ -10,6 +10,12 @@ type Walkin = Tables<"walkins">;
 
 const ALERTS_KEY = "ge-walkin-alerts";
 
+// "9098280778" -> "(909) 828-0778"; anything else as entered.
+function prettyPhone(phone: string) {
+  const d = phone.replace(/^\+?1(?=\d{10}$)/, "");
+  return /^\d{10}$/.test(d) ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : phone;
+}
+
 // Alerts preference lives in this browser (localStorage), as an external store.
 const listeners = new Set<() => void>();
 const alertsStore = {
@@ -91,7 +97,9 @@ export function WalkinsWidget({
               chime();
               navigator.vibrate?.([200, 100, 200]);
               if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-                new Notification("New walk-in", { body: `${row.name} just checked in` });
+                new Notification(`New walk-in: ${row.name}`, {
+                  body: `${prettyPhone(row.phone)} · ${row.eta ? `Coming at ${clock(row.eta.slice(0, 5))}` : "Here now"}`,
+                });
               }
             }
           } else if (change.eventType === "UPDATE" && row.status !== "waiting") {
