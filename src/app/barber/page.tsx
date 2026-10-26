@@ -109,7 +109,7 @@ export default async function BarberPage() {
         </MenuSheet>
       }
     >
-      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients", "Events"]}>
+      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients", "Events"]} start={1}>
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
 
