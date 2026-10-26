@@ -51,3 +51,9 @@ export function thisWednesday(today = todayInShop()): string {
   // Built from calendar parts in UTC, so formatting it in UTC can't roll the day.
   return date.toISOString().slice(0, 10);
 }
+
+// "18:30:00" -> "6:30 PM" (a wall-clock time, no time zone).
+export function formatClock(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}

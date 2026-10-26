@@ -13,7 +13,10 @@ import {
   addReview,
   setReviewVisible,
   deleteReview,
+  addEvent,
+  deleteEvent,
 } from "@/app/actions/owner";
+import { EventList } from "@/components/staff/EventList";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
 import { ShopTabs } from "@/components/owner/ShopTabs";
@@ -42,6 +45,7 @@ export default async function OwnerPage() {
     { data: rates },
     { data: lowSupplies },
     { data: reviews },
+    { data: events },
   ] = await Promise.all([
     supabase.from("shops").select("*").order("sort"),
     supabase.from("barbers").select("*").order("sort").order("display_name"),
@@ -50,6 +54,7 @@ export default async function OwnerPage() {
     supabase.from("rent_rates").select("barber_id, amount_cents"),
     supabase.from("supplies").select("*").neq("status", "full").order("name"),
     supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+    supabase.from("events").select("*").gte("event_date", today).order("event_date").order("start_time"),
   ]);
 
   const allShops = shops ?? [];
@@ -65,7 +70,7 @@ export default async function OwnerPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Booth rent", "Supplies", "Reviews", "Shop"]}>
+      <SwipeDeck labels={["Booth rent", "Supplies", "Reviews", "Events", "Shop"]}>
         {/* Booth rent: who owes, add charges, mark paid. */}
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Booth rent</h1>
@@ -201,6 +206,57 @@ export default async function OwnerPage() {
                   ))}
                 </ul>
               )}
+            </Panel>
+          </div>
+        </div>
+
+        {/* Events: the owner posts upcoming shop events; barbers see them in their app. */}
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Events</h1>
+          <p className="mt-2 text-ink-2">Post what&rsquo;s coming up. Your barbers see it in their app.</p>
+          <div className="mt-8 space-y-6">
+            <Panel title="Add an event">
+              <ActionForm action={addEvent} resetOnSuccess className="grid gap-4 sm:grid-cols-2">
+                <Field label="Event" name="title" placeholder="Back-to-school cuts" required />
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">Shop</span>
+                  <select name="shop_id" className={inputClass} defaultValue="">
+                    <option value="">Both shops</option>
+                    {allShops.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Field label="Date" name="event_date" type="date" required />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Starts" name="start_time" type="time" />
+                  <Field label="Ends" name="end_time" type="time" />
+                </div>
+                <label className="block sm:col-span-2">
+                  <span className="mb-1.5 block text-sm font-semibold">Details (optional)</span>
+                  <textarea
+                    name="notes"
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Free cuts for kids with a backpack. Everyone on the floor by 9."
+                    className={inputClass}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <SubmitButton>Add event</SubmitButton>
+                </div>
+              </ActionForm>
+            </Panel>
+
+            <Panel title="Coming up" aside={<span className="text-sm text-muted">{(events ?? []).length} upcoming</span>}>
+              <EventList
+                events={events ?? []}
+                shopName={(id) => (id ? (allShops.find((s) => s.id === id)?.name ?? "") : "Both shops")}
+                onDelete={deleteEvent}
+                empty="No events yet. Add one above and it shows in every barber's app."
+              />
             </Panel>
           </div>
         </div>

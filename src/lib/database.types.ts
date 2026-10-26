@@ -278,6 +278,28 @@ export type Database = {
         Update: { visible?: boolean };
         Relationships: [];
       };
+      events: {
+        Row: {
+          created_at: string;
+          end_time: string | null;
+          event_date: string;
+          id: string;
+          notes: string | null;
+          shop_id: string | null;
+          start_time: string | null;
+          title: string;
+        };
+        Insert: {
+          end_time?: string | null;
+          event_date: string;
+          notes?: string | null;
+          shop_id?: string | null;
+          start_time?: string | null;
+          title: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       shop_messages: {
         Row: {
           author_id: string;

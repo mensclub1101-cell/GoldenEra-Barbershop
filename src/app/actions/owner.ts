@@ -193,3 +193,32 @@ export async function deleteReview(reviewId: string) {
   await supabase.from("reviews").delete().eq("id", reviewId);
   done();
 }
+
+export async function addEvent(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("owner");
+  const shopId = text(formData, "shop_id") || null;
+  const title = text(formData, "title").slice(0, 80);
+  const eventDate = text(formData, "event_date");
+  const startTime = text(formData, "start_time") || null;
+  const endTime = text(formData, "end_time") || null;
+  const notes = text(formData, "notes").slice(0, 500) || null;
+  if (!title) return { error: "Give the event a name." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) return { error: "Pick a date." };
+  if (startTime && endTime && endTime <= startTime) return { error: "End time has to be after the start." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("events")
+    .insert({ shop_id: shopId, title, event_date: eventDate, start_time: startTime, end_time: endTime, notes });
+  if (error) return { error: "Couldn't save. Try again." };
+  revalidatePath("/barber");
+  done();
+  return { notice: "Event added. Your barbers can see it now." };
+}
+
+export async function deleteEvent(eventId: string) {
+  await requireRole("owner");
+  const supabase = await createClient();
+  await supabase.from("events").delete().eq("id", eventId);
+  revalidatePath("/barber");
+  done();
+}

@@ -5,6 +5,7 @@ import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { updateMyCard } from "@/app/actions/barber";
 import { ClockWidget } from "@/components/ClockWidget";
 import { ClientList } from "@/components/staff/ClientList";
+import { EventList } from "@/components/staff/EventList";
 import { MediaStudio } from "@/components/staff/MediaStudio";
 import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
 import { ShopChat } from "@/components/staff/ShopChat";
@@ -40,6 +41,7 @@ export default async function BarberPage() {
     { data: supplies },
     { data: cleaning },
     { data: clients },
+    { data: events },
   ] = await Promise.all([
     supabase.from("shops").select("name, slug").eq("id", seat.shop_id).single(),
     supabase.from("shops").select("id, name, staff_login_url").order("sort"),
@@ -50,6 +52,13 @@ export default async function BarberPage() {
     supabase.from("supplies").select("*").eq("shop_id", seat.shop_id).order("sort").order("name"),
     supabase.from("cleaning_tasks").select("*").eq("shop_id", seat.shop_id).order("sort"),
     supabase.from("clients").select("*").eq("barber_id", seat.id).order("last_visit_at", { ascending: false }),
+    supabase
+      .from("events")
+      .select("*")
+      .or(`shop_id.is.null,shop_id.eq.${seat.shop_id}`)
+      .gte("event_date", today)
+      .order("event_date")
+      .order("start_time"),
   ]);
   const barberNames = Object.fromEntries((shopBarbers ?? []).map((b) => [b.id, b.display_name]));
   const myName = viewer.profile.full_name ?? seat.display_name;
@@ -100,7 +109,7 @@ export default async function BarberPage() {
         </MenuSheet>
       }
     >
-      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients"]}>
+      <SwipeDeck labels={["Widgets", "Media", "Shop ops", "Booking", "Clients", "Events"]}>
         <div className="mx-auto max-w-md space-y-4">
           <ClockWidget name={myName} />
 
@@ -213,6 +222,16 @@ export default async function BarberPage() {
         <div className="mx-auto max-w-md space-y-4">
           <PageTitle eyebrow={`${(clients ?? []).length} saved`} title="Clients" />
           <ClientList clients={clients ?? []} />
+        </div>
+
+        {/* Events the owner posted for this shop or both shops. */}
+        <div className="mx-auto max-w-md space-y-4">
+          <PageTitle eyebrow={`${(events ?? []).length} coming up`} title="Events" />
+          <EventList
+            events={events ?? []}
+            shopName={(id) => (id ? (allShops ?? []).find((s) => s.id === id)?.name ?? "" : "Both shops")}
+            empty="Nothing on the calendar yet. When the owner posts an event, it shows up here."
+          />
         </div>
       </SwipeDeck>
     </AppShell>
