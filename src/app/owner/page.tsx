@@ -17,6 +17,7 @@ import {
   deleteEvent,
 } from "@/app/actions/owner";
 import { EventList } from "@/components/staff/EventList";
+import { ShopChat } from "@/components/staff/ShopChat";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
 import { ShopTabs } from "@/components/owner/ShopTabs";
@@ -65,12 +66,40 @@ export default async function OwnerPage() {
   const shopOf = new Map(allBarbers.map((b) => [b.id, b.shop_id]));
   const rentOf = new Map((rates ?? []).map((r) => [r.barber_id, r.amount_cents]));
 
+  // Last 50 chat messages per shop, oldest first, for the Widgets page.
+  const chats = await Promise.all(
+    allShops.map((s) =>
+      supabase.from("shop_messages").select("*").eq("shop_id", s.id).order("created_at", { ascending: false }).limit(50),
+    ),
+  );
+  const myName = viewer.profile.full_name ?? "Owner";
+
   const active = allBarbers.filter((b) => b.active);
   const joined = active.filter((b) => b.profile_id).length;
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Booth rent", "Supplies", "Reviews", "Events", "Shop"]}>
+      <SwipeDeck labels={["Widgets", "Booth rent", "Supplies", "Reviews", "Events", "Shop"]}>
+        {/* Widgets: shop chat, one shop at a time. */}
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Widgets</h1>
+          <p className="mt-2 text-ink-2">Talk with your barbers. Tap a shop to switch chats.</p>
+          <div className="mt-8 max-w-md">
+            <ShopTabs
+              tabs={allShops.map((s, i) => ({
+                id: s.id,
+                label: s.name,
+                content: (
+                  <div className="mt-4 rounded-3xl border border-line bg-paper p-5">
+                    <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-muted">Shop chat</h2>
+                    <ShopChat shopId={s.id} me={viewer.userId} myName={myName} initial={(chats[i].data ?? []).reverse()} />
+                  </div>
+                ),
+              }))}
+            />
+          </div>
+        </div>
+
         {/* Booth rent: who owes, add charges, mark paid. */}
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Booth rent</h1>
