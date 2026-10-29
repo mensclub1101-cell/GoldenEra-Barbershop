@@ -27,8 +27,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+// viewportFit "cover" lets the installed app draw edge to edge; headers pad
+// themselves below the notch with env(safe-area-inset-top).
 export const viewport: Viewport = {
   themeColor: "#0b0b0b",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

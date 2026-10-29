@@ -79,11 +79,17 @@ export function scheduleLines(schedule: WeekSchedule): string[] {
 
 // Arrival times a walk-in can pick today: every 15 minutes from now (or from
 // opening, before the shop opens) up to 30 minutes before closing. Empty once
-// it's too late. `open` says whether "Now" makes sense.
+// it's too late. `open` says whether "Now" makes sense; `reopens` says when
+// check-in opens next ("tomorrow at 10am").
 export function walkinSlots(hours: { days: string[]; open: string; close: string }[], at = new Date()) {
   const { day, hhmm } = shopNow(at);
   const today = hours.find((h) => h.days.includes(DAY_NAMES[day]));
-  if (!today) return { open: false, slots: [] as string[] };
+  let reopens = "";
+  for (let ahead = 1; ahead <= 7 && !reopens; ahead++) {
+    const next = hours.find((h) => h.days.includes(DAY_NAMES[(day + ahead) % 7]));
+    if (next) reopens = `${ahead === 1 ? "tomorrow" : DAY_NAMES[(day + ahead) % 7]} at ${clock(next.open)}`;
+  }
+  if (!today) return { open: false, slots: [] as string[], reopens };
   const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
   const now = mins(hhmm);
   const last = mins(today.close) - 30;
@@ -92,5 +98,5 @@ export function walkinSlots(hours: { days: string[]; open: string; close: string
   for (let m = start; m <= last; m += 15) {
     slots.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
   }
-  return { open: now >= mins(today.open) && now <= last, slots };
+  return { open: now >= mins(today.open) && now <= last, slots, reopens };
 }

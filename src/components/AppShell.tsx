@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/SiteHeader";
 import { signOut } from "@/app/actions/auth";
-import type { Viewer } from "@/lib/auth";
+import { homeFor, type Viewer } from "@/lib/auth";
 
 const roleLabel = { owner: "Owner", barber: "Barber", client: "Client" } as const;
 
@@ -24,10 +24,10 @@ export function AppShell({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <Wordmark />
+            <Wordmark href={homeFor(role)} />
             <span className="hidden rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-paper sm:inline">
               {roleLabel[role]}
             </span>
@@ -53,6 +53,15 @@ export function AppShell({
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
+      <footer className="pb-[calc(env(safe-area-inset-bottom)+5rem)] text-center text-xs text-muted">
+        <Link href="/" className="px-2 py-2 underline-offset-2 hover:text-ink hover:underline">
+          Website
+        </Link>
+        ·
+        <Link href={role === "owner" ? "/guide?for=owner" : "/guide"} className="px-2 py-2 underline-offset-2 hover:text-ink hover:underline">
+          How it works
+        </Link>
+      </footer>
     </>
   );
 }

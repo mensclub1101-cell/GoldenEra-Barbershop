@@ -3,10 +3,18 @@
 import { useState } from "react";
 import { ActionForm, Field, SubmitButton, inputClass } from "@/components/forms";
 import { checkIn } from "@/app/actions/auth";
-import { clock } from "@/lib/shop";
+import { clock, telHref } from "@/lib/shop";
 
 // open: the shop takes walk-ins right now; slots: arrival times left today.
-type Shop = { slug: string; name: string; open: boolean; slots: string[]; barbers: { id: string; name: string }[] };
+type Shop = {
+  slug: string;
+  name: string;
+  phone: string | null;
+  open: boolean;
+  slots: string[];
+  reopens: string;
+  barbers: { id: string; name: string }[];
+};
 
 export function CheckInForm({ shops, initialShop }: { shops: Shop[]; initialShop?: string }) {
   const [shop, setShop] = useState(initialShop && shops.some((s) => s.slug === initialShop) ? initialShop : shops[0]?.slug);
@@ -53,18 +61,27 @@ export function CheckInForm({ shops, initialShop }: { shops: Shop[]; initialShop
         </select>
       </label>
       {closed ? (
-        <p className="rounded-xl bg-paper-2 p-4 text-sm text-ink-2">
-          {current?.name} is done taking walk-ins for today. Check in again tomorrow.
-        </p>
+        <div className="rounded-xl bg-paper-2 p-4 text-sm text-ink-2">
+          <p>
+            {current?.name} is done taking walk-ins for today.
+            {current?.reopens && ` Check-in opens ${current.reopens}.`}
+          </p>
+          {current?.phone && (
+            <a href={telHref(current.phone)} className="mt-3 inline-block font-semibold text-ink underline">
+              Call {current.name} {current.phone}
+            </a>
+          )}
+        </div>
       ) : (
-        <fieldset key={shop}>
+        <fieldset key={shop} className="min-w-0">
           <legend className="mb-1.5 block text-sm font-semibold">ETA</legend>
-          <p className="mb-2 text-xs text-muted">When will you get to the shop?</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="mb-2 text-xs text-muted">When will you get to the shop? Swipe for later times.</p>
+          {/* One row that swipes sideways, so a full day of times doesn't push Check in off the screen. */}
+          <div className="relative -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[...(current?.open ? [""] : []), ...(current?.slots ?? [])].map((t, i) => (
-              <label key={t || "now"} className="cursor-pointer">
+              <label key={t || "now"} className="shrink-0 cursor-pointer snap-start">
                 <input type="radio" name="eta" value={t} defaultChecked={i === 0} className="peer sr-only" />
-                <span className="block rounded-full border border-line px-4 py-2 text-sm font-semibold transition peer-checked:border-ink peer-checked:bg-ink peer-checked:text-paper peer-focus-visible:ring-2 peer-focus-visible:ring-ink">
+                <span className="block whitespace-nowrap rounded-full border border-line px-4 py-2 text-sm font-semibold transition peer-checked:border-ink peer-checked:bg-ink peer-checked:text-paper peer-focus-visible:ring-2 peer-focus-visible:ring-ink">
                   {t ? clock(t) : "Now"}
                 </span>
               </label>

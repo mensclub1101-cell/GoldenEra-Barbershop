@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { SiteHeader } from "@/components/SiteHeader";
 import { CheckInForm } from "@/components/CheckInForm";
@@ -26,6 +27,7 @@ export default async function CheckInPage({ searchParams }: PageProps<"/checkin"
   const list = (shops ?? []).map((s) => ({
     slug: s.slug,
     name: s.name,
+    phone: locations.find((l) => l.slug === s.slug)?.phone ?? null,
     ...walkinSlots(locations.find((l) => l.slug === s.slug)?.schedule ?? [], now),
     // Only barbers in right now. Anyone who hasn't set a schedule yet still shows.
     barbers: (barbers ?? [])
@@ -45,6 +47,9 @@ export default async function CheckInPage({ searchParams }: PageProps<"/checkin"
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">Walk-in check in</h1>
           <p className="mb-6 mt-2 text-sm text-muted">Get in line from your phone. We&rsquo;ll call you when it&rsquo;s your turn.</p>
           <CheckInForm shops={list} initialShop={typeof shop === "string" ? shop : undefined} />
+          <Link href="/" className="mt-6 block text-center text-sm font-semibold text-muted underline-offset-2 hover:text-ink hover:underline">
+            Back to home
+          </Link>
         </div>
       </main>
     </>
