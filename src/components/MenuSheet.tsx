@@ -32,13 +32,14 @@ export function MenuSheet({ title, dot, children }: { title: string; dot?: boole
       </button>
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-end bg-black/40 sm:items-center" onClick={() => setOpen(false)}>
+          <div className="sheet-backdrop fixed inset-0 z-50 flex items-end bg-black/40 sm:items-center" onClick={() => setOpen(false)}>
             <div
               role="dialog"
               aria-label={title}
               onClick={(e) => e.stopPropagation()}
-              className="mx-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl"
+              className="sheet mx-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl"
             >
+              <div aria-hidden className="mx-auto -mt-1 mb-3 h-1.5 w-10 rounded-full bg-line sm:hidden" />
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">{title}</h2>
                 <button type="button" onClick={() => setOpen(false)} className="text-sm font-semibold text-muted">

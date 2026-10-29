@@ -153,7 +153,7 @@ export function ClientList({ clients }: { clients: Client[] }) {
         type="button"
         aria-label="Add a client"
         onClick={() => setAdding(true)}
-        className="fixed bottom-[max(3.75rem,calc(env(safe-area-inset-bottom)+2.75rem))] left-1/2 z-30 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-ink text-3xl leading-none text-paper shadow-lg [[aria-hidden=true]_&]:hidden"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-ink text-3xl leading-none text-paper shadow-lg [[aria-hidden=true]_&]:hidden"
       >
         +
       </button>
@@ -167,7 +167,7 @@ function AddClientSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
+    <div className="sheet-backdrop fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
@@ -179,8 +179,9 @@ function AddClientSheet({ onClose }: { onClose: () => void }) {
             else onClose();
           });
         }}
-        className="mx-auto w-full max-w-md space-y-3 rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className="sheet mx-auto w-full max-w-md space-y-3 rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
       >
+        <div aria-hidden className="mx-auto -mt-1 mb-3 h-1.5 w-10 rounded-full bg-line sm:hidden" />
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">New client</h2>
           <button type="button" onClick={onClose} className="text-sm font-semibold text-muted">

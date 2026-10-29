@@ -32,7 +32,7 @@ export function EditRentButton({
         Edit
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 sm:items-center" onClick={() => setOpen(false)}>
+        <div className="sheet-backdrop fixed inset-0 z-50 flex items-end bg-black/40 sm:items-center" onClick={() => setOpen(false)}>
           <form
             role="dialog"
             aria-label={`Edit ${name}`}
@@ -41,8 +41,9 @@ export function EditRentButton({
               e.preventDefault();
               save(String(new FormData(e.currentTarget).get("amount") ?? ""));
             }}
-            className="mx-auto w-full max-w-md space-y-4 rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl"
+            className="sheet mx-auto w-full max-w-md space-y-4 rounded-t-3xl bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl"
           >
+            <div aria-hidden className="mx-auto -mt-1 mb-3 h-1.5 w-10 rounded-full bg-line sm:hidden" />
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">{name}</h2>
               <button type="button" onClick={() => setOpen(false)} className="text-sm font-semibold text-muted">

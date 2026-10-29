@@ -89,3 +89,29 @@ a[class*="rounded-full"]:active,
   .review-ticker { overflow-x: auto; }
   .review-ticker-track { animation: none; }
 }
+
+/* Motion: pages fade up into place, pop-up sheets slide up from the bottom. */
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+}
+/* Opacity only on <main>: an animated transform would make it the containing
+   block for the fixed tab bar and floating buttons inside it. */
+main {
+  animation: fade-in 0.3s ease-out;
+}
+.sheet-backdrop {
+  animation: fade-in 0.2s ease-out both;
+}
+.sheet {
+  animation: sheet-up 0.34s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  main,
+  .sheet-backdrop,
+  .sheet {
+    animation: none;
+  }
+}
