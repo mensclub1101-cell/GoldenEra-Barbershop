@@ -2,6 +2,9 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": "worker.ts",
 	"name": "gold-n-era-barbershop",
+	// Keep variables set in the Cloudflare dashboard (like INSTAGRAM_TOKEN
+	// saved as Text) when a new version deploys. Secrets are always kept.
+	"keep_vars": true,
 	"compatibility_date": "2026-10-12",
 	"compatibility_flags": [
 		"nodejs_compat",

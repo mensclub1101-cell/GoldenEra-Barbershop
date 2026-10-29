@@ -470,13 +470,13 @@ export function MediaStudio({
             </>
           ) : (
             <>
-              <button type="button" onClick={shareToInstagram} className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper">
-                Submit
-              </button>
-              <p className="text-xs text-muted">
-                This copies the caption and opens your share sheet so you can post to Instagram. Posting straight from
-                here turns on once the shop&rsquo;s Instagram is connected.
+              <p className="rounded-2xl border border-line p-4 text-sm text-ink-2">
+                <strong className="text-ink">Instagram isn&rsquo;t connected yet,</strong> so this can&rsquo;t post by
+                itself. Tap below to copy the caption and share the photo to Instagram yourself.
               </p>
+              <button type="button" onClick={shareToInstagram} className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper">
+                Share to Instagram
+              </button>
             </>
           )}
         </div>
