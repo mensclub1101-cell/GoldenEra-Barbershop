@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase/browser";
-import { checkInstagramPost, publishInstagramPost, startInstagramPost } from "@/app/actions/instagram";
+import { checkInstagramPost, publishInstagramPost, startInstagramCarousel, startInstagramPost } from "@/app/actions/instagram";
 
 type Tab = "instagram" | "client";
+type Mode = "single" | "beforeAfter";
 type Picked = { file: File; url: string };
 
 // Seasonal ideas show up a few weeks ahead, with a countdown.
@@ -23,7 +24,6 @@ const SEASONS: { label: string; date: (year: number) => Date; idea: string }[] =
 ];
 const IDEAS = [
   { label: "Fresh cut", idea: "Fresh cut, clean finish." },
-  { label: "Before & after", idea: "Before and after. Show the transformation." },
   { label: "Design work", idea: "Show off the design work." },
   { label: "Line-up", idea: "Sharp line-up, two weeks fresh." },
   { label: "Beard work", idea: "Beard shaped and lined." },
@@ -53,7 +53,17 @@ function upcoming(today: Date) {
 
 // Photo/video picker: big tap area (iPhone offers library, camera or files),
 // plus direct Camera and Camera roll buttons.
-function MediaPicker({ picked, onPick }: { picked: Picked | null; onPick: (p: Picked | null) => void }) {
+function MediaPicker({
+  picked,
+  onPick,
+  label,
+  photoOnly = false,
+}: {
+  picked: Picked | null;
+  onPick: (p: Picked | null) => void;
+  label?: string;
+  photoOnly?: boolean;
+}) {
   const any = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   const roll = useRef<HTMLInputElement>(null);
@@ -65,17 +75,26 @@ function MediaPicker({ picked, onPick }: { picked: Picked | null; onPick: (p: Pi
     onPick({ file, url: URL.createObjectURL(file) });
   };
   const isVideo = picked?.file.type.startsWith("video/");
+  const accept = photoOnly ? "image/*" : "image/*,video/*";
+  const compact = Boolean(label);
 
   return (
     <div className="space-y-3">
-      <input ref={any} type="file" accept="image/*,video/*" onChange={take} className="hidden" />
-      <input ref={camera} type="file" accept="image/*,video/*" capture="environment" onChange={take} className="hidden" />
-      <input ref={roll} type="file" accept="image/*,video/*" onChange={take} className="hidden" />
+      <input ref={any} type="file" accept={accept} onChange={take} className="hidden" />
+      <input ref={camera} type="file" accept={accept} capture="environment" onChange={take} className="hidden" />
+      <input ref={roll} type="file" accept={accept} onChange={take} className="hidden" />
       <button
         type="button"
         onClick={() => any.current?.click()}
-        className="relative grid aspect-[4/5] w-full place-items-center overflow-hidden rounded-3xl border-2 border-dashed border-line bg-paper-2 text-center"
+        className={`relative grid aspect-[4/5] w-full place-items-center overflow-hidden border-2 border-dashed border-line bg-paper-2 text-center ${
+          compact ? "rounded-2xl" : "rounded-3xl"
+        }`}
       >
+        {label && (
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-ink px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-paper">
+            {label}
+          </span>
+        )}
         {picked ? (
           isVideo ? (
             <video src={picked.url} className="h-full w-full object-cover" muted playsInline autoPlay loop />
@@ -85,19 +104,21 @@ function MediaPicker({ picked, onPick }: { picked: Picked | null; onPick: (p: Pi
           )
         ) : (
           <span>
-            <svg viewBox="0 0 24 24" className="mx-auto h-10 w-10 fill-none stroke-ink" strokeWidth={1.6} aria-hidden>
+            <svg viewBox="0 0 24 24" className={`mx-auto fill-none stroke-ink ${compact ? "h-8 w-8" : "h-10 w-10"}`} strokeWidth={1.6} aria-hidden>
               <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
               <circle cx="12" cy="13" r="3.5" />
             </svg>
-            <span className="mt-2 block text-sm font-semibold text-ink-2">Tap to choose photo or video</span>
+            <span className="mt-2 block px-2 text-sm font-semibold text-ink-2">
+              {compact ? "Tap to add" : photoOnly ? "Tap to choose a photo" : "Tap to choose photo or video"}
+            </span>
           </span>
         )}
       </button>
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => camera.current?.click()} className="rounded-2xl border border-ink py-3 text-sm font-semibold">
-          Take photo / video
+      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "grid-cols-2"}`}>
+        <button type="button" onClick={() => camera.current?.click()} className={`rounded-2xl border border-ink text-sm font-semibold ${compact ? "py-2.5" : "py-3"}`}>
+          {compact ? "Snap" : photoOnly ? "Take photo" : "Take photo / video"}
         </button>
-        <button type="button" onClick={() => roll.current?.click()} className="rounded-2xl border border-ink py-3 text-sm font-semibold">
+        <button type="button" onClick={() => roll.current?.click()} className={`rounded-2xl border border-ink text-sm font-semibold ${compact ? "py-2.5" : "py-3"}`}>
           Camera roll
         </button>
       </div>
@@ -113,7 +134,7 @@ function MediaPicker({ picked, onPick }: { picked: Picked | null; onPick: (p: Pi
 // Instagram feed photos must be JPEG with a shape between 4:5 (tall) and
 // 1.91:1 (wide). Re-encode any photo (HEIC, PNG...) as JPEG, center-crop it
 // into that range and cap the width at 1440px.
-async function instagramJpeg(file: File): Promise<Blob> {
+async function instagramJpeg(file: File, exactFourFive = false): Promise<Blob> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image();
     i.onload = () => resolve(i);
@@ -122,8 +143,11 @@ async function instagramJpeg(file: File): Promise<Blob> {
   });
   let sw = img.naturalWidth;
   let sh = img.naturalHeight;
-  if (sw / sh < 4 / 5) sh = Math.round(sw * (5 / 4));
-  else if (sw / sh > 1.91) sw = Math.round(sh * 1.91);
+  // Before & after photos are both cut to exactly 4:5 so the two slides match.
+  const min = 4 / 5;
+  const max = exactFourFive ? 4 / 5 : 1.91;
+  if (sw / sh < min) sh = Math.round(sw / min);
+  else if (sw / sh > max) sw = Math.round(sh * max);
   const sx = Math.round((img.naturalWidth - sw) / 2);
   const sy = Math.round((img.naturalHeight - sh) / 2);
   const scale = Math.min(1, 1440 / sw);
@@ -179,6 +203,7 @@ export function MediaStudio({
   clients,
   userId,
   instagramConnected,
+  barberInstagram,
 }: {
   barberName: string;
   shopName: string;
@@ -187,9 +212,13 @@ export function MediaStudio({
   clients: { name: string; phone: string }[];
   userId: string;
   instagramConnected: boolean;
+  barberInstagram: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("instagram");
   const [picked, setPicked] = useState<Picked | null>(null);
+  const [mode, setMode] = useState<Mode>("single");
+  const [before, setBefore] = useState<Picked | null>(null);
+  const [after, setAfter] = useState<Picked | null>(null);
   const [ask, setAsk] = useState("");
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("");
@@ -207,11 +236,13 @@ export function MediaStudio({
 
   const addIdea = (idea: string) => setAsk((a) => (a.trim() ? `${a.trim()} ${idea}` : idea));
 
+  const handle = barberInstagram?.replace(/^@/, "").trim();
   const caption = () =>
     [
+      ...(mode === "beforeAfter" ? ["Before ➡️ After. Swipe to see it."] : []),
       ask.trim() || "Fresh cut.",
       "",
-      `✂️ ${barberName} · Golden Era ${shopName}`,
+      `✂️ ${handle ? `@${handle}` : barberName} · Golden Era ${shopName}`,
       `Book: ${link}`,
       "",
       "#GoldenEraBarbershop #MorenoValley #MorenoValleyBarber #Barbershop #FreshCut",
@@ -219,26 +250,35 @@ export function MediaStudio({
 
   // Upload to our storage, hand Instagram the public URL, wait until it's
   // processed (videos take a while), then publish.
+  const uploadForInstagram = async (file: File, exactFourFive: boolean) => {
+    const isVideo = file.type.startsWith("video/");
+    const body = isVideo ? file : await instagramJpeg(file, exactFourFive);
+    const ext = isVideo ? (file.type === "video/quicktime" ? "mov" : "mp4") : "jpg";
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const supabase = getBrowserClient();
+    const up = await supabase.storage.from("post-media").upload(path, body, { contentType: isVideo ? file.type : "image/jpeg" });
+    if (up.error) throw new Error("Upload failed. Check your signal and try again.");
+    return supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+  };
+
   const postToInstagram = async () => {
-    if (!picked) return setStatus("Pick a photo or video first.");
-    const isVideo = picked.file.type.startsWith("video/");
-    if (isVideo && !/^video\/(mp4|quicktime)$/.test(picked.file.type)) return setStatus("Instagram takes MP4 or MOV videos.");
-    if (picked.file.size > 100 * 1024 * 1024) return setStatus("That video is over 100 MB. Trim it and try again.");
+    const beforeAfter = mode === "beforeAfter";
+    if (beforeAfter && (!before || !after)) return setStatus("Add both the before and the after photo.");
+    if (!beforeAfter && !picked) return setStatus("Pick a photo or video first.");
+    const isVideo = !beforeAfter && picked!.file.type.startsWith("video/");
+    if (isVideo && !/^video\/(mp4|quicktime)$/.test(picked!.file.type)) return setStatus("Instagram takes MP4 or MOV videos.");
+    if (isVideo && picked!.file.size > 100 * 1024 * 1024) return setStatus("That video is over 100 MB. Trim it and try again.");
     setPosting(true);
     setPermalink(null);
-    let mediaUrl = "";
+    const mediaUrls: string[] = [];
     try {
-      setStatus(isVideo ? "Uploading your video…" : "Getting your photo ready…");
-      const body = isVideo ? picked.file : await instagramJpeg(picked.file);
-      const ext = isVideo ? (picked.file.type === "video/quicktime" ? "mov" : "mp4") : "jpg";
-      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-      const supabase = getBrowserClient();
-      const up = await supabase.storage.from("post-media").upload(path, body, { contentType: isVideo ? picked.file.type : "image/jpeg" });
-      if (up.error) throw new Error("Upload failed. Check your signal and try again.");
-      mediaUrl = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+      setStatus(isVideo ? "Uploading your video…" : beforeAfter ? "Getting your before & after ready…" : "Getting your photo ready…");
+      for (const f of beforeAfter ? [before!.file, after!.file] : [picked!.file]) mediaUrls.push(await uploadForInstagram(f, beforeAfter));
 
       setStatus("Sending to Instagram…");
-      const started = await startInstagramPost(mediaUrl, isVideo, caption());
+      const started = beforeAfter
+        ? await startInstagramCarousel(mediaUrls, caption())
+        : await startInstagramPost(mediaUrls[0], isVideo, caption());
       if (!started.ok) throw new Error(started.error);
 
       // Photos are usually ready at once; videos can take a minute or two.
@@ -253,15 +293,18 @@ export function MediaStudio({
       }
 
       setStatus("Posting…");
-      const done = await publishInstagramPost(started.data.id, mediaUrl);
+      const done = await publishInstagramPost(started.data.id, mediaUrls);
       if (!done.ok) throw new Error(done.error);
       setPermalink(done.data.permalink);
       setStatus("Posted to the shop's Instagram.");
       setPicked(null);
+      setBefore(null);
+      setAfter(null);
       setAsk("");
     } catch (e) {
       // Leave nothing half-done in storage when it fails.
-      if (mediaUrl) await getBrowserClient().storage.from("post-media").remove([mediaUrl.split("/public/post-media/")[1]]).catch(() => {});
+      const paths = mediaUrls.map((u) => u.split("/public/post-media/")[1]);
+      if (paths.length) await getBrowserClient().storage.from("post-media").remove(paths).catch(() => {});
       setStatus(e instanceof Error ? e.message : "Something went wrong. Try again.");
     } finally {
       setPosting(false);
@@ -269,10 +312,12 @@ export function MediaStudio({
   };
 
   const shareToInstagram = async () => {
-    if (!picked) return setStatus("Pick a photo or video first.");
+    const items = mode === "beforeAfter" && tab === "instagram" ? [before, after] : [picked];
+    if (items.some((p) => !p)) return setStatus(items.length > 1 ? "Add both the before and the after photo." : "Pick a photo or video first.");
+    const files = items.map((p) => p!.file);
     const text = caption();
     const copied = await copyText(text);
-    const shareData = { files: [picked.file] };
+    const shareData = { files };
     if (navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
@@ -281,9 +326,8 @@ export function MediaStudio({
         setStatus("Share cancelled.");
       }
     } else {
-      const a = Object.assign(document.createElement("a"), { href: picked.url, download: picked.file.name });
-      a.click();
-      setStatus(copied ? "Saved the file and copied the caption. Post it from your phone." : "Saved the file.");
+      for (const p of items) Object.assign(document.createElement("a"), { href: p!.url, download: p!.file.name }).click();
+      setStatus(copied ? "Saved and copied the caption. Post it from your phone." : "Saved.");
     }
   };
 
@@ -331,7 +375,38 @@ export function MediaStudio({
           : "Send your client their cut with a thank-you and your booking link."}
       </p>
 
-      <MediaPicker picked={picked} onPick={setPicked} />
+      {tab === "instagram" && (
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-line p-1 text-xs font-semibold">
+          {(
+            [
+              ["single", "Photo or video"],
+              ["beforeAfter", "Before & after"],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setMode(m);
+                setStatus("");
+              }}
+              aria-pressed={mode === m}
+              className={`rounded-full py-2 transition ${mode === m ? "bg-paper-2 text-ink" : "text-muted"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "instagram" && mode === "beforeAfter" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <MediaPicker picked={before} onPick={setBefore} label="Before" photoOnly />
+          <MediaPicker picked={after} onPick={setAfter} label="After" photoOnly />
+        </div>
+      ) : (
+        <MediaPicker picked={picked} onPick={setPicked} />
+      )}
 
       {tab === "instagram" ? (
         <div className="space-y-3">
@@ -379,7 +454,7 @@ export function MediaStudio({
               <button
                 type="button"
                 onClick={postToInstagram}
-                disabled={posting || !picked}
+                disabled={posting || (mode === "beforeAfter" ? !before || !after : !picked)}
                 className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper disabled:opacity-50"
               >
                 {posting ? "Posting…" : "Post to Instagram"}

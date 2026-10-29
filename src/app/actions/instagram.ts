@@ -61,6 +61,26 @@ export async function startInstagramPost(mediaUrl: string, isVideo: boolean, cap
   );
 }
 
+// Before & after: each photo becomes a carousel item, then one parent post
+// holds them in order with the caption.
+export async function startInstagramCarousel(mediaUrls: string[], caption: string): Promise<Result<{ id: string }>> {
+  const viewer = await requireRole("barber", "owner");
+  if (mediaUrls.length < 2 || mediaUrls.length > 10 || !mediaUrls.every((u) => ownMediaUrl(u, viewer.userId))) {
+    return { ok: false, error: "Upload the photos again." };
+  }
+  const children: string[] = [];
+  for (const url of mediaUrls) {
+    const child = await graph<{ id: string }>(`${IG_USER_ID}/media`, { image_url: url, is_carousel_item: "true" });
+    if (!child.ok) return child;
+    children.push(child.data.id);
+  }
+  return graph<{ id: string }>(`${IG_USER_ID}/media`, {
+    media_type: "CAROUSEL",
+    children: children.join(","),
+    caption: caption.slice(0, 2200),
+  });
+}
+
 // FINISHED = ready to publish; IN_PROGRESS = keep waiting (videos take a bit).
 export async function checkInstagramPost(containerId: string): Promise<Result<{ status: string }>> {
   await requireRole("barber", "owner");
@@ -69,16 +89,18 @@ export async function checkInstagramPost(containerId: string): Promise<Result<{ 
   return r.ok ? { ok: true, data: { status: r.data.status_code ?? "FINISHED" } } : r;
 }
 
-export async function publishInstagramPost(containerId: string, mediaUrl: string): Promise<Result<{ permalink: string | null }>> {
+export async function publishInstagramPost(containerId: string, mediaUrls: string[]): Promise<Result<{ permalink: string | null }>> {
   const viewer = await requireRole("barber", "owner");
   if (!/^\d+$/.test(containerId)) return { ok: false, error: "Start the post again." };
   const published = await graph<{ id: string }>(`${IG_USER_ID}/media_publish`, { creation_id: containerId });
   if (!published.ok) return published;
   // Instagram has its own copy now; tidy up ours.
-  if (ownMediaUrl(mediaUrl, viewer.userId)) {
-    const path = mediaUrl.split(`/public/${BUCKET}/`)[1];
+  const paths = mediaUrls
+    .filter((u) => ownMediaUrl(u, viewer.userId))
+    .map((u) => decodeURIComponent(u.split(`/public/${BUCKET}/`)[1]));
+  if (paths.length) {
     const supabase = await createClient();
-    await supabase.storage.from(BUCKET).remove([decodeURIComponent(path)]);
+    await supabase.storage.from(BUCKET).remove(paths);
   }
   const link = await graph<{ permalink?: string }>(published.data.id, { fields: "permalink" }, "GET");
   return { ok: true, data: { permalink: link.ok ? (link.data.permalink ?? null) : null } };

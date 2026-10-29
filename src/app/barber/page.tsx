@@ -171,6 +171,7 @@ export default async function BarberPage() {
             clients={(clients ?? []).flatMap((c) => (c.phone ? [{ name: c.name, phone: c.phone }] : []))}
             userId={viewer.userId}
             instagramConnected={await instagramReady()}
+            barberInstagram={seat.instagram}
           />
         </div>
 
