@@ -7,6 +7,7 @@ import { ClockWidget } from "@/components/ClockWidget";
 import { ClientList } from "@/components/staff/ClientList";
 import { EventList } from "@/components/staff/EventList";
 import { MediaStudio } from "@/components/staff/MediaStudio";
+import { instagramReady } from "@/app/actions/instagram";
 import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
 import { ShopChat } from "@/components/staff/ShopChat";
 import { WalkinsWidget } from "@/components/staff/WalkinsWidget";
@@ -168,6 +169,8 @@ export default async function BarberPage() {
             bookingUrl={seat.booking_url}
             siteUrl={siteUrl}
             clients={(clients ?? []).flatMap((c) => (c.phone ? [{ name: c.name, phone: c.phone }] : []))}
+            userId={viewer.userId}
+            instagramConnected={await instagramReady()}
           />
         </div>
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getBrowserClient } from "@/lib/supabase/browser";
+import { checkInstagramPost, publishInstagramPost, startInstagramPost } from "@/app/actions/instagram";
 
 type Tab = "instagram" | "client";
 type Picked = { file: File; url: string };
@@ -108,6 +110,35 @@ function MediaPicker({ picked, onPick }: { picked: Picked | null; onPick: (p: Pi
   );
 }
 
+// Instagram feed photos must be JPEG with a shape between 4:5 (tall) and
+// 1.91:1 (wide). Re-encode any photo (HEIC, PNG...) as JPEG, center-crop it
+// into that range and cap the width at 1440px.
+async function instagramJpeg(file: File): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("Couldn't read that photo."));
+    i.src = URL.createObjectURL(file);
+  });
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (sw / sh < 4 / 5) sh = Math.round(sw * (5 / 4));
+  else if (sw / sh > 1.91) sw = Math.round(sh * 1.91);
+  const sx = Math.round((img.naturalWidth - sw) / 2);
+  const sy = Math.round((img.naturalHeight - sh) / 2);
+  const scale = Math.min(1, 1440 / sw);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(sw * scale);
+  canvas.height = Math.round(sh * scale);
+  canvas.getContext("2d")!.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  URL.revokeObjectURL(img.src);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't prepare that photo."))), "image/jpeg", 0.9),
+  );
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text);
@@ -146,18 +177,24 @@ export function MediaStudio({
   bookingUrl,
   siteUrl,
   clients,
+  userId,
+  instagramConnected,
 }: {
   barberName: string;
   shopName: string;
   bookingUrl: string | null;
   siteUrl: string;
   clients: { name: string; phone: string }[];
+  userId: string;
+  instagramConnected: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("instagram");
   const [picked, setPicked] = useState<Picked | null>(null);
   const [ask, setAsk] = useState("");
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [permalink, setPermalink] = useState<string | null>(null);
   const [today, setToday] = useState<Date | null>(null);
   useEffect(() => {
     const id = setTimeout(() => setToday(new Date()), 0); // dates differ between server and phone
@@ -179,6 +216,57 @@ export function MediaStudio({
       "",
       "#GoldenEraBarbershop #MorenoValley #MorenoValleyBarber #Barbershop #FreshCut",
     ].join("\n");
+
+  // Upload to our storage, hand Instagram the public URL, wait until it's
+  // processed (videos take a while), then publish.
+  const postToInstagram = async () => {
+    if (!picked) return setStatus("Pick a photo or video first.");
+    const isVideo = picked.file.type.startsWith("video/");
+    if (isVideo && !/^video\/(mp4|quicktime)$/.test(picked.file.type)) return setStatus("Instagram takes MP4 or MOV videos.");
+    if (picked.file.size > 100 * 1024 * 1024) return setStatus("That video is over 100 MB. Trim it and try again.");
+    setPosting(true);
+    setPermalink(null);
+    let mediaUrl = "";
+    try {
+      setStatus(isVideo ? "Uploading your video…" : "Getting your photo ready…");
+      const body = isVideo ? picked.file : await instagramJpeg(picked.file);
+      const ext = isVideo ? (picked.file.type === "video/quicktime" ? "mov" : "mp4") : "jpg";
+      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+      const supabase = getBrowserClient();
+      const up = await supabase.storage.from("post-media").upload(path, body, { contentType: isVideo ? picked.file.type : "image/jpeg" });
+      if (up.error) throw new Error("Upload failed. Check your signal and try again.");
+      mediaUrl = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+
+      setStatus("Sending to Instagram…");
+      const started = await startInstagramPost(mediaUrl, isVideo, caption());
+      if (!started.ok) throw new Error(started.error);
+
+      // Photos are usually ready at once; videos can take a minute or two.
+      for (let i = 0; i < 60; i++) {
+        const check = await checkInstagramPost(started.data.id);
+        if (!check.ok) throw new Error(check.error);
+        if (check.data.status === "FINISHED") break;
+        if (check.data.status === "ERROR" || check.data.status === "EXPIRED") throw new Error("Instagram couldn't process that file. Try a different one.");
+        if (i === 59) throw new Error("Instagram is taking too long. Try again in a minute.");
+        setStatus(isVideo ? "Instagram is processing your video. This can take a minute…" : "Almost there…");
+        await sleep(3000);
+      }
+
+      setStatus("Posting…");
+      const done = await publishInstagramPost(started.data.id, mediaUrl);
+      if (!done.ok) throw new Error(done.error);
+      setPermalink(done.data.permalink);
+      setStatus("Posted to the shop's Instagram.");
+      setPicked(null);
+      setAsk("");
+    } catch (e) {
+      // Leave nothing half-done in storage when it fails.
+      if (mediaUrl) await getBrowserClient().storage.from("post-media").remove([mediaUrl.split("/public/post-media/")[1]]).catch(() => {});
+      setStatus(e instanceof Error ? e.message : "Something went wrong. Try again.");
+    } finally {
+      setPosting(false);
+    }
+  };
 
   const shareToInstagram = async () => {
     if (!picked) return setStatus("Pick a photo or video first.");
@@ -282,13 +370,40 @@ export function MediaStudio({
             ))}
           </div>
           <p className="text-xs text-muted">Tap an idea to add it, or just say what you want.</p>
-          <button type="button" onClick={shareToInstagram} className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper">
-            Submit
-          </button>
-          <p className="text-xs text-muted">
-            For now this copies the caption and opens your share sheet so you can post to Instagram. AI captions and
-            auto-posting turn on once the shop&rsquo;s Instagram is connected.
-          </p>
+          {instagramConnected ? (
+            <>
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.25em] text-muted">Caption preview</span>
+                <p className="whitespace-pre-line rounded-2xl bg-paper-2 p-4 text-sm text-ink-2">{caption()}</p>
+              </div>
+              <button
+                type="button"
+                onClick={postToInstagram}
+                disabled={posting || !picked}
+                className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper disabled:opacity-50"
+              >
+                {posting ? "Posting…" : "Post to Instagram"}
+              </button>
+              <button
+                type="button"
+                onClick={shareToInstagram}
+                disabled={posting}
+                className="w-full text-center text-xs font-semibold text-muted underline disabled:opacity-50"
+              >
+                Or share it yourself
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={shareToInstagram} className="w-full rounded-full bg-ink py-3.5 text-sm font-semibold uppercase tracking-wider text-paper">
+                Submit
+              </button>
+              <p className="text-xs text-muted">
+                This copies the caption and opens your share sheet so you can post to Instagram. Posting straight from
+                here turns on once the shop&rsquo;s Instagram is connected.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -322,6 +437,14 @@ export function MediaStudio({
       {status && (
         <p role="status" className="rounded-2xl bg-paper-2 px-4 py-3 text-sm">
           {status}
+          {permalink && (
+            <>
+              {" "}
+              <a href={permalink} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
+                View it
+              </a>
+            </>
+          )}
         </p>
       )}
     </div>
