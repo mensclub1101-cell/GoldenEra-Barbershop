@@ -51,12 +51,6 @@ const SETUP_QUESTIONS = [
     ask: "How much is weekly booth rent, and is it the same for everyone? (You can also set it yourself on Booth rent.)",
     placeholder: "e.g. $250 a week, due Sundays, same for everyone",
   },
-  {
-    topic: "contact",
-    title: "Best way to reach you",
-    ask: "Phone or email for the owner, in case we have questions.",
-    placeholder: "e.g. (951) 555-0123",
-  },
 ] as const;
 
 const smallButton =
