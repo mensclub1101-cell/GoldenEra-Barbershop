@@ -153,6 +153,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M5.5 12v7.5h13V12M10 19.5v-4h4v4" />
     </>
   ),
+  Setup: (
+    <>
+      <rect x="5" y="4" width="14" height="17" rx="2.5" />
+      <path d="M9 4.5h6v2.5H9zM8.5 12h7M8.5 16h4.5" />
+    </>
+  ),
 };
 
 function TabIcon({ name }: { name: string }) {

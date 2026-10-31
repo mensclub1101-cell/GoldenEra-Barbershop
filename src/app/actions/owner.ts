@@ -222,3 +222,26 @@ export async function deleteEvent(eventId: string) {
   revalidatePath("/barber");
   done();
 }
+
+// Setup answers and requests from the owner for the build team.
+export async function sendRequest(topic: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
+  const viewer = await requireRole("owner");
+  const body = text(formData, "body").slice(0, 1000);
+  if (!body) return { error: "Type your answer first." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("owner_requests").insert({
+    topic: topic?.slice(0, 60) ?? null,
+    body,
+    author_name: viewer.profile.full_name ?? "Owner",
+  });
+  if (error) return { error: "Couldn't send. Try again." };
+  revalidatePath("/owner");
+  return { notice: "Sent. Thanks — we'll take it from here." };
+}
+
+export async function setRequestDone(requestId: string, done: boolean) {
+  await requireRole("owner");
+  const supabase = await createClient();
+  await supabase.from("owner_requests").update({ done }).eq("id", requestId);
+  revalidatePath("/owner");
+}

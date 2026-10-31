@@ -15,6 +15,8 @@ import {
   deleteReview,
   addEvent,
   deleteEvent,
+  sendRequest,
+  setRequestDone,
 } from "@/app/actions/owner";
 import { EventList } from "@/components/staff/EventList";
 import { ShopChat } from "@/components/staff/ShopChat";
@@ -28,6 +30,40 @@ import { getSiteUrl } from "@/lib/site-url";
 import type { Tables } from "@/lib/database.types";
 
 export const metadata: Metadata = { title: "Owner | Golden Era Barbershop" };
+
+// What the build team still needs from the owner. Answers land in owner_requests.
+const SETUP_QUESTIONS = [
+  {
+    topic: "moreno-beach-address",
+    title: "Moreno Beach address",
+    ask: "The site shows 14435 Moreno Beach Dr #105. Is that right, or is it 14425?",
+    placeholder: "e.g. 14435 Moreno Beach Dr #105 is correct",
+  },
+  {
+    topic: "barber-seat",
+    title: "The “Barber” seat",
+    ask: "There's a barber card at Moreno Beach just named “Barber.” Is that a real person? If yes, what's their name?",
+    placeholder: "e.g. That's Mike, he uses Squire",
+  },
+  {
+    topic: "instagram",
+    title: "Shop Instagram",
+    ask: "Which Instagram should the website link to? Right now posts go to @goldnerabarbershops.",
+    placeholder: "e.g. Use @goldnerabarbershops for both shops",
+  },
+  {
+    topic: "booth-rent",
+    title: "Booth rent",
+    ask: "How much is weekly booth rent, and is it the same for everyone? (You can also set it yourself on Booth rent.)",
+    placeholder: "e.g. $250 a week, due Sundays, same for everyone",
+  },
+  {
+    topic: "contact",
+    title: "Best way to reach you",
+    ask: "Phone or email for the owner, in case we have questions.",
+    placeholder: "e.g. (951) 555-0123",
+  },
+] as const;
 
 const smallButton =
   "rounded-full border border-ink px-3 py-1.5 text-xs font-semibold transition hover:bg-ink hover:text-paper";
@@ -47,6 +83,7 @@ export default async function OwnerPage() {
     { data: lowSupplies },
     { data: reviews },
     { data: events },
+    { data: requests },
   ] = await Promise.all([
     supabase.from("shops").select("*").order("sort"),
     supabase.from("barbers").select("*").order("sort").order("display_name"),
@@ -56,6 +93,7 @@ export default async function OwnerPage() {
     supabase.from("supplies").select("*").neq("status", "full").order("name"),
     supabase.from("reviews").select("*").order("created_at", { ascending: false }),
     supabase.from("events").select("*").gte("event_date", today).order("event_date").order("start_time"),
+    supabase.from("owner_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
 
   const allShops = shops ?? [];
@@ -79,7 +117,7 @@ export default async function OwnerPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Widgets", "Booth rent", "Supplies", "Reviews", "Events", "Shop"]}>
+      <SwipeDeck labels={["Widgets", "Booth rent", "Supplies", "Reviews", "Events", "Shop", "Setup"]}>
         {/* Widgets: shop chat, one shop at a time. */}
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Widgets</h1>
@@ -405,6 +443,89 @@ export default async function OwnerPage() {
                 };
               })}
             />
+          </div>
+        </div>
+        {/* Setup: questions the build team needs answered, plus anything else the owner wants changed. */}
+        <div>
+          <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Setup</h1>
+          <p className="mt-2 text-ink-2">Answer these so we can finish your app. Anything you send here goes straight to the build team.</p>
+          <div className="mt-8 space-y-6">
+            <Panel title="Quick checklist">
+              <ul className="space-y-2 text-sm text-ink-2">
+                <li>
+                  <strong className="text-ink">Booth rent:</strong> swipe to Booth rent, tap Edit on each barber, enter their weekly rent.
+                </li>
+                <li>
+                  <strong className="text-ink">Invite barbers:</strong> swipe to Shop, tap Invite on each barber, text them the link.
+                </li>
+                <li>
+                  <strong className="text-ink">Booking login:</strong> on Shop, add each shop&rsquo;s booking system login link if you have one.
+                </li>
+              </ul>
+            </Panel>
+
+            {SETUP_QUESTIONS.map((q) => {
+              const answers = (requests ?? []).filter((r) => r.topic === q.topic);
+              return (
+                <Panel
+                  key={q.topic}
+                  title={q.title}
+                  aside={answers.length > 0 ? <StatusPill tone="ink">Answered</StatusPill> : <StatusPill tone="alert">Needed</StatusPill>}
+                >
+                  <p className="mb-3 text-sm text-ink-2">{q.ask}</p>
+                  {answers.length > 0 && (
+                    <p className="mb-3 rounded-2xl bg-paper-2 p-3 text-sm">
+                      <span className="text-xs text-muted">Your answer: </span>
+                      {answers[0].body}
+                    </p>
+                  )}
+                  <ActionForm action={sendRequest.bind(null, q.topic)} resetOnSuccess className="space-y-3">
+                    <textarea name="body" required maxLength={1000} rows={2} placeholder={q.placeholder} className={inputClass} />
+                    <SubmitButton>{answers.length > 0 ? "Update answer" : "Send"}</SubmitButton>
+                  </ActionForm>
+                </Panel>
+              );
+            })}
+
+            <Panel title="Anything else">
+              <p className="mb-3 text-sm text-ink-2">Want something changed or added to the website or the app? Tell us here.</p>
+              <ActionForm action={sendRequest.bind(null, null)} resetOnSuccess className="space-y-3">
+                <textarea
+                  name="body"
+                  required
+                  maxLength={1000}
+                  rows={4}
+                  placeholder="Add a new barber named… / Change the Sunday hours to… / Put this photo on the site…"
+                  className={inputClass}
+                />
+                <SubmitButton>Send to the build team</SubmitButton>
+              </ActionForm>
+            </Panel>
+
+            <Panel title="Sent" aside={<span className="text-sm text-muted">{(requests ?? []).length} total</span>}>
+              {(requests ?? []).length === 0 ? (
+                <p className="text-sm text-muted">Nothing sent yet.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {(requests ?? []).map((r) => (
+                    <li key={r.id} className={`py-3 ${r.done ? "opacity-50" : ""}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                          {SETUP_QUESTIONS.find((q) => q.topic === r.topic)?.title ?? "Request"} · {r.author_name} · {formatTimestamp(r.created_at)}
+                        </p>
+                        {r.done && <StatusPill tone="muted">Done</StatusPill>}
+                      </div>
+                      <p className="mt-1 whitespace-pre-line text-sm">{r.body}</p>
+                      <form action={setRequestDone.bind(null, r.id, !r.done)} className="mt-1">
+                        <button className="text-xs font-semibold text-muted underline hover:text-ink">
+                          {r.done ? "Mark not done" : "Mark done"}
+                        </button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
           </div>
         </div>
       </SwipeDeck>

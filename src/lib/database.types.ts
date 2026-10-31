@@ -280,6 +280,20 @@ export type Database = {
         Update: { visible?: boolean };
         Relationships: [];
       };
+      owner_requests: {
+        Row: {
+          author_name: string;
+          body: string;
+          created_at: string;
+          created_by: string | null;
+          done: boolean;
+          id: string;
+          topic: string | null;
+        };
+        Insert: { author_name: string; body: string; topic?: string | null };
+        Update: { done?: boolean };
+        Relationships: [];
+      };
       events: {
         Row: {
           created_at: string;
