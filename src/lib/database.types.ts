@@ -81,6 +81,7 @@ export type Database = {
           token: string;
           used_at: string | null;
           used_by: string | null;
+          invitee_name: string | null;
         };
         Insert: {
           barber_id?: string | null;
