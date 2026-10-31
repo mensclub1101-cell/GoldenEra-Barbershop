@@ -71,7 +71,7 @@ export const locations: Location[] = [
     ],
     photo: "/shop-pigeon-pass.jpg",
     yelpReviewUrl: "https://www.yelp.com/writeareview/biz/PZWGTEQbXm-pjliHd8y6CA",
-    instagram: "goldenera_barbershop1",
+    instagram: "goldenerabarbershops",
   },
   {
     slug: "moreno-beach",
@@ -89,7 +89,7 @@ export const locations: Location[] = [
     ],
     photo: "/shop-moreno-beach.jpg",
     yelpReviewUrl: "https://www.yelp.com/writeareview/biz/wmtDvccyvRZIPNNjRwpoVA",
-    instagram: "goldenera_barbershop2",
+    instagram: "goldenerabarbershops",
   },
 ];
 

@@ -34,12 +34,6 @@ export const metadata: Metadata = { title: "Owner | Golden Era Barbershop" };
 // What the build team still needs from the owner. Answers land in owner_requests.
 const SETUP_QUESTIONS = [
   {
-    topic: "instagram",
-    title: "Shop Instagram",
-    ask: "Which Instagram should the website link to? Right now posts go to @goldnerabarbershops.",
-    placeholder: "e.g. Use @goldnerabarbershops for both shops",
-  },
-  {
     topic: "booth-rent",
     title: "Booth rent",
     ask: "How much is weekly booth rent, and is it the same for everyone? (You can also set it yourself on Booth rent.)",
