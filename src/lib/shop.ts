@@ -76,7 +76,7 @@ export const locations: Location[] = [
   {
     slug: "moreno-beach",
     name: "Moreno Beach",
-    street: "14435 Moreno Beach Dr #105",
+    street: "14425 Moreno Beach Dr",
     city: "Moreno Valley",
     region: "CA",
     postalCode: "92555",

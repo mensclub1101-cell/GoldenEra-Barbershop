@@ -34,12 +34,6 @@ export const metadata: Metadata = { title: "Owner | Golden Era Barbershop" };
 // What the build team still needs from the owner. Answers land in owner_requests.
 const SETUP_QUESTIONS = [
   {
-    topic: "moreno-beach-address",
-    title: "Moreno Beach address",
-    ask: "The site shows 14435 Moreno Beach Dr #105. Is that right, or is it 14425?",
-    placeholder: "e.g. 14435 Moreno Beach Dr #105 is correct",
-  },
-  {
     topic: "barber-seat",
     title: "The “Barber” seat",
     ask: "There's a barber card at Moreno Beach just named “Barber.” Is that a real person? If yes, what's their name?",
