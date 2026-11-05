@@ -16,7 +16,16 @@ type Shop = {
   barbers: { id: string; name: string }[];
 };
 
-export function CheckInForm({ shops, initialShop }: { shops: Shop[]; initialShop?: string }) {
+// `defaults` prefills a signed-in client's name, phone and barber.
+export function CheckInForm({
+  shops,
+  initialShop,
+  defaults,
+}: {
+  shops: Shop[];
+  initialShop?: string;
+  defaults?: { name?: string | null; phone?: string | null; barberId?: string | null };
+}) {
   const [shop, setShop] = useState(initialShop && shops.some((s) => s.slug === initialShop) ? initialShop : shops[0]?.slug);
   const current = shops.find((s) => s.slug === shop);
   const barbers = current?.barbers ?? [];
@@ -47,11 +56,16 @@ export function CheckInForm({ shops, initialShop }: { shops: Shop[]; initialShop
           ))}
         </div>
       </fieldset>
-      <Field label="Your name" name="name" autoComplete="given-name" required />
-      <Field label="Phone" name="phone" type="tel" autoComplete="tel" placeholder="(951) 555-0123" required hint="So your barber can call you when it's your turn." />
+      <Field label="Your name" name="name" autoComplete="given-name" defaultValue={defaults?.name} required />
+      <Field label="Phone" name="phone" type="tel" autoComplete="tel" placeholder="(951) 555-0123" defaultValue={defaults?.phone} required hint="So your barber can call you when it's your turn." />
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">Barber</span>
-        <select key={shop} name="barber_id" className={inputClass} defaultValue="">
+        <select
+          key={shop}
+          name="barber_id"
+          className={inputClass}
+          defaultValue={barbers.some((b) => b.id === defaults?.barberId) ? (defaults?.barberId ?? "") : ""}
+        >
           <option value="">First available</option>
           {barbers.map((b) => (
             <option key={b.id} value={b.id}>

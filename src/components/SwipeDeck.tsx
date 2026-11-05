@@ -45,7 +45,9 @@ export function SwipeDeck({
             key={i}
             aria-label={labels[i]}
             aria-hidden={i !== active}
-            className="w-full shrink-0 snap-start snap-always px-px pb-28"
+            // relative: hidden inputs (sr-only, absolutely positioned) stay
+            // inside their page instead of widening the whole screen.
+            className="relative w-full shrink-0 snap-start snap-always px-px pb-28"
           >
             {page}
           </section>
@@ -151,6 +153,36 @@ const ICONS: Record<string, React.ReactNode> = {
     <>
       <path d="M4 9.5L5.5 5h13L20 9.5a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0 2.7 2.7 0 0 1-5.3 0z" />
       <path d="M5.5 12v7.5h13V12M10 19.5v-4h4v4" />
+    </>
+  ),
+  Home: (
+    <>
+      <path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-5v6h-4A1.5 1.5 0 0 1 4 19z" />
+    </>
+  ),
+  Barbers: (
+    <>
+      <circle cx="6.5" cy="7" r="2.5" />
+      <circle cx="6.5" cy="17" r="2.5" />
+      <path d="M8.6 8.4L20 16M8.6 15.6L20 8" />
+    </>
+  ),
+  "Check in": (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M8.5 12.2l2.4 2.4 4.6-4.8" />
+    </>
+  ),
+  Shops: (
+    <>
+      <path d="M12 20.5s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
+      <circle cx="12" cy="9.5" r="2.3" />
+    </>
+  ),
+  Me: (
+    <>
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.5 20c1-3.6 4-5.5 7.5-5.5s6.5 1.9 7.5 5.5" />
     </>
   ),
   Setup: (

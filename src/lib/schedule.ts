@@ -57,6 +57,28 @@ export function isWorkingNow(schedule: WeekSchedule | null, at = new Date()) {
   return !!today && hhmm >= today.open && hhmm < today.close;
 }
 
+// A barber's hours today: undefined when they haven't set a schedule,
+// null when they're off today.
+export function todaysHours(schedule: WeekSchedule | null, at = new Date()): DayHours | undefined {
+  return schedule ? schedule[shopNow(at).day] : undefined;
+}
+
+// One line on whether a shop is open right now, from its weekly hours:
+// "Open until 7pm", "Opens today at 10am", "Opens tomorrow at 10am".
+export function shopStatus(hours: { days: string[]; open: string; close: string }[], at = new Date()) {
+  const { day, hhmm } = shopNow(at);
+  const today = hours.find((h) => h.days.includes(DAY_NAMES[day]));
+  if (today && hhmm >= today.open && hhmm < today.close) return { open: true, label: `Open until ${clock(today.close)}` };
+  if (today && hhmm < today.open) return { open: false, label: `Opens today at ${clock(today.open)}` };
+  for (let ahead = 1; ahead <= 7; ahead++) {
+    const next = hours.find((h) => h.days.includes(DAY_NAMES[(day + ahead) % 7]));
+    if (next) {
+      return { open: false, label: `Opens ${ahead === 1 ? "tomorrow" : DAY_NAMES[(day + ahead) % 7]} at ${clock(next.open)}` };
+    }
+  }
+  return { open: false, label: "Closed" };
+}
+
 // Short lines for a card: same hours on neighbouring days are grouped,
 // e.g. ["Tue–Fri 10am–7pm", "Sat 9am–5pm"].
 export function scheduleLines(schedule: WeekSchedule): string[] {
