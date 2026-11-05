@@ -272,10 +272,12 @@ export type Database = {
           body: string;
           created_at: string;
           id: string;
+          profile_id: string | null;
           rating: number;
           shop_id: string;
           source: string | null;
           visible: boolean;
+          walkin_id: string | null;
         };
         Insert: { author: string; body: string; rating: number; shop_id: string; source?: string | null; visible?: boolean };
         Update: { visible?: boolean };
@@ -378,6 +380,14 @@ export type Database = {
       claim_referral: {
         Args: { p_code: string };
         Returns: boolean;
+      };
+      leave_review: {
+        Args: { p_rating: number; p_body: string };
+        Returns: boolean;
+      };
+      rewards_totals: {
+        Args: never;
+        Returns: Json;
       };
       rewards_overview: {
         Args: never;

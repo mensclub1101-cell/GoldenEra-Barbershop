@@ -34,3 +34,18 @@ export async function setMyBarber(barberId: string | null) {
   await supabase.from("profiles").update({ favorite_barber_id: barberId }).eq("id", viewer.userId);
   revalidatePath("/client");
 }
+
+// A review left in the app after a visit: 10 points, whatever the rating.
+// The database checks there's a finished visit without a review yet.
+export async function leaveReview(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("client");
+  const rating = Number(formData.get("rating"));
+  const body = String(formData.get("body") ?? "").trim();
+  if (!(rating >= 1 && rating <= 5)) return { error: "Pick 1 to 5 stars." };
+  if (!body) return { error: "Write a few words about your cut." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("leave_review", { p_rating: rating, p_body: body });
+  if (error) return { error: error.message };
+  revalidatePath("/client");
+  return { notice: "Thanks! 10 points added." };
+}

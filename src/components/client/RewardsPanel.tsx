@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { leaveReview } from "@/app/actions/client";
+import { ActionForm, SubmitButton, inputClass } from "@/components/forms";
 
 export type Rewards = {
   code: string;
   points: number;
   my_bonus: "pending" | "earned" | null; // their own welcome bonus, if a friend invited them
+  can_review?: boolean; // a finished visit is waiting for a review
   invites: { name: string; status: "pending" | "earned"; joined: string }[];
 };
 
@@ -16,7 +19,15 @@ const pill = "flex-1 rounded-full bg-paper-2 py-3.5 text-center text-sm font-sem
 // The invite flow, like Cash App's: "how it works" first, then Continue to
 // send a friend the link. The bonus pays itself once the friend's first
 // check-in from the app is marked Done.
-export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: string }) {
+export function RewardsPanel({
+  rewards,
+  siteUrl,
+  googleReviews,
+}: {
+  rewards: Rewards;
+  siteUrl: string;
+  googleReviews: { name: string; url: string }[]; // optional, no points: Google doesn't allow rewarding reviews
+}) {
   const [step, setStep] = useState<"intro" | "invite">("intro");
   const [copied, setCopied] = useState(false);
   const link = `${siteUrl}/signup?ref=${rewards.code}`;
@@ -71,6 +82,7 @@ export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: 
           Continue
         </button>
         <Balance rewards={rewards} />
+        <ReviewCard canReview={!!rewards.can_review} googleReviews={googleReviews} />
       </div>
     );
   }
@@ -115,6 +127,7 @@ export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: 
         </div>
       )}
       <Balance rewards={rewards} />
+      <ReviewCard canReview={!!rewards.can_review} googleReviews={googleReviews} />
       <button type="button" onClick={() => setStep("intro")} className="block w-full py-2 text-center text-sm font-semibold text-muted">
         How it works
       </button>
@@ -132,6 +145,58 @@ function Balance({ rewards }: { rewards: Rewards }) {
         )}
       </div>
       <p className="font-display text-4xl font-semibold">{rewards.points}</p>
+    </div>
+  );
+}
+
+// 10 points for a review left here after a visit, good or bad. Reviews on
+// Google are welcome too, but can't earn points.
+function ReviewCard({ canReview, googleReviews }: { canReview: boolean; googleReviews: { name: string; url: string }[] }) {
+  const [stars, setStars] = useState(5);
+  return (
+    <div className="rounded-3xl border border-line p-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted">Leave a review</p>
+        <span className="text-xs font-semibold">+10 points</span>
+      </div>
+      {canReview ? (
+        <ActionForm action={leaveReview} className="mt-3 space-y-3">
+          <div role="radiogroup" aria-label="Stars" className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <label key={n} className="cursor-pointer text-3xl leading-none">
+                <input type="radio" name="rating" value={n} checked={stars === n} onChange={() => setStars(n)} className="sr-only" />
+                <span aria-hidden className={n <= stars ? "text-ink" : "text-line"}>★</span>
+                <span className="sr-only">{n} stars</span>
+              </label>
+            ))}
+          </div>
+          <textarea
+            name="body"
+            required
+            maxLength={600}
+            rows={3}
+            placeholder="How was your cut?"
+            className={inputClass}
+          />
+          <p className="text-xs text-muted">Good or bad, you get the points. The shop may show it on the website.</p>
+          <SubmitButton className="w-full">Send review</SubmitButton>
+        </ActionForm>
+      ) : (
+        <p className="mt-2 text-sm text-ink-2">After your next visit (check in from the app), leave a review here for 10 points.</p>
+      )}
+      {googleReviews.length > 0 && (
+        <p className="mt-3 text-xs text-muted">
+          Want to help even more? Review us on Google:{" "}
+          {googleReviews.map((g, i) => (
+            <span key={g.name}>
+              {i > 0 && " · "}
+              <a href={g.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-ink underline">
+                {g.name}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
     </div>
   );
 }
