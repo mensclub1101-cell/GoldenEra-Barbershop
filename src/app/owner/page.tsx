@@ -62,7 +62,6 @@ export default async function OwnerPage() {
     { data: events },
     { data: requests },
     { data: referrals },
-    { data: rewardTotals },
   ] = await Promise.all([
     supabase.from("shops").select("*").order("sort"),
     supabase.from("barbers").select("*").order("sort").order("display_name"),
@@ -74,7 +73,6 @@ export default async function OwnerPage() {
     supabase.from("events").select("*").gte("event_date", today).order("event_date").order("start_time"),
     supabase.from("owner_requests").select("*").order("created_at", { ascending: false }).limit(100),
     supabase.rpc("rewards_overview"),
-    supabase.rpc("rewards_totals"),
   ]);
 
   const allShops = shops ?? [];
@@ -237,11 +235,7 @@ export default async function OwnerPage() {
                         <p className="font-semibold">
                           {r.author} <span className="text-sm">{"★".repeat(r.rating)}</span>
                         </p>
-                        {!r.visible && (
-                          <StatusPill tone={r.source === "App" && r.profile_id ? "ink" : "muted"}>
-                            {r.source === "App" && r.profile_id ? "New from the app" : "Hidden"}
-                          </StatusPill>
-                        )}
+                        {!r.visible && <StatusPill tone="muted">Hidden</StatusPill>}
                       </div>
                       <p className="mt-1 text-sm text-ink-2">&ldquo;{r.body}&rdquo;</p>
                       <p className="mt-1 text-xs text-muted">
@@ -266,9 +260,7 @@ export default async function OwnerPage() {
 
         {/* Rewards: every client invite and where it stands. Bonuses pay out by
             themselves when the invited client's first check-in is marked Done. */}
-        {referrals && (
-          <RewardsView referrals={referrals} totals={(rewardTotals as { points_given: number; app_reviews: number } | null) ?? null} />
-        )}
+        {referrals && <RewardsView referrals={referrals} />}
 
         {/* Events: the owner posts upcoming shop events; barbers see them in their app. */}
         <div>

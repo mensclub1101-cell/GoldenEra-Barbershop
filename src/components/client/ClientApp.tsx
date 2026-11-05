@@ -106,11 +106,9 @@ export function ClientApp({
             <Widget title="My points" aside="Rewards tab">
               <p className="font-display text-5xl font-semibold">{rewards.points}</p>
               <p className="mt-1 text-sm text-ink-2">
-                {rewards.can_review
-                  ? "Leave a review of your last visit on the Rewards tab: +10 points."
-                  : rewards.my_bonus === "pending"
-                    ? "Check in for your first cut from the app to unlock your 25-point welcome bonus."
-                    : "Invite a friend: 50 points for you, 25 for them. Review a visit: +10."}
+                {rewards.my_bonus === "pending"
+                  ? "Check in for your first cut from the app to unlock your 25-point welcome bonus."
+                  : "Invite a friend: 50 points for you, 25 for them."}
               </p>
             </Widget>
           )}
@@ -215,14 +213,7 @@ export function ClientApp({
         {/* Rewards: how invites work, then send one. */}
         {rewards && (
           <div className="mx-auto max-w-md">
-            <RewardsPanel
-              rewards={rewards}
-              siteUrl={siteUrl}
-              googleReviews={allShops.flatMap((s) => {
-                const place = placeOf(s.slug);
-                return place ? [{ name: s.name, url: mapsUrl(place) }] : [];
-              })}
-            />
+            <RewardsPanel rewards={rewards} siteUrl={siteUrl} />
           </div>
         )}
 

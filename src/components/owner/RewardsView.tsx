@@ -6,25 +6,22 @@ import { formatTimestamp } from "@/lib/format";
 // check-in is marked Done.
 export function RewardsView({
   referrals,
-  totals,
 }: {
-  totals: { points_given: number; app_reviews: number } | null;
   referrals: { friend: string; inviter: string; barber: string | null; status: "pending" | "earned"; joined: string; earned_at: string | null }[];
 }) {
   const earned = referrals.filter((r) => r.status === "earned").length;
   const stats = [
     { label: "Invites joined", value: referrals.length },
+    { label: "Waiting on first visit", value: referrals.length - earned },
     { label: "New clients in the chair", value: earned },
-    { label: "App reviews", value: totals?.app_reviews ?? 0 },
-    { label: "Points given", value: totals?.points_given ?? earned * 75 },
+    { label: "Points given", value: earned * 75 },
   ];
   return (
     <div>
       <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Rewards</h1>
       <p className="mt-2 text-ink-2">
         Clients invite friends. When a friend&rsquo;s first check-in is marked Done, the friend gets 25 points and the
-        client who invited them 50, automatically. Clients also get 10 points for a review left in the app after a
-        visit; new ones wait on the Reviews page for you to show them.
+        client who invited them 50, automatically.
       </p>
       <div className="mt-8 grid max-w-2xl grid-cols-2 gap-3">
         {stats.map((s) => (
