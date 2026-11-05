@@ -280,6 +280,32 @@ export type Database = {
         Update: { visible?: boolean };
         Relationships: [];
       };
+      client_rewards: {
+        Row: {
+          created_at: string;
+          profile_id: string;
+          referral_code: string;
+          referral_earned_at: string | null;
+          referral_status: "pending" | "earned" | null;
+          referred_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      points_ledger: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          delta: number;
+          id: string;
+          profile_id: string;
+          reason: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       owner_requests: {
         Row: {
           author_name: string;
@@ -343,6 +369,22 @@ export type Database = {
       claim_invite: {
         Args: { p_token: string };
         Returns: AppRole;
+      };
+      my_rewards: {
+        Args: never;
+        Returns: Json;
+      };
+      claim_referral: {
+        Args: { p_code: string };
+        Returns: boolean;
+      };
+      pending_first_cuts: {
+        Args: never;
+        Returns: { profile_id: string; full_name: string | null; phone: string | null; barber_name: string | null; joined: string }[];
+      };
+      confirm_first_cut: {
+        Args: { p_profile: string };
+        Returns: boolean;
       };
       peek_invite: {
         Args: { p_token: string };

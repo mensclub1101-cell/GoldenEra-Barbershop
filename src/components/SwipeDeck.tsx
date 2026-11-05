@@ -173,6 +173,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M8.5 12.2l2.4 2.4 4.6-4.8" />
     </>
   ),
+  Rewards: (
+    <>
+      <rect x="3.5" y="8" width="17" height="4" rx="1" />
+      <path d="M5 12v8h14v-8M12 8v12M12 8S10.5 4 8 4.5 7 8 12 8zM12 8s1.5-4 4-3.5S17 8 12 8z" />
+    </>
+  ),
   Shops: (
     <>
       <path d="M12 20.5s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />

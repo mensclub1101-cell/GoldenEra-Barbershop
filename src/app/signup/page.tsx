@@ -8,7 +8,9 @@ import { getViewer, homeFor } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Sign up | Golden Era Barbershop" };
 
-export default async function SignupPage() {
+export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
+  const { ref } = await searchParams;
+  const invite = typeof ref === "string" && /^[A-Za-z0-9]{4,12}$/.test(ref) ? ref.toUpperCase() : null;
   const viewer = await getViewer();
   if (viewer) redirect(homeFor(viewer.profile.role));
 
@@ -19,9 +21,12 @@ export default async function SignupPage() {
         <div className="w-full max-w-md rounded-3xl border border-line p-6 sm:p-8">
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">Sign up</h1>
           <p className="mt-2 text-sm text-muted">
-            Save your barber and book in one tap next time.
+            {invite
+              ? "A friend invited you. Sign up and book your first cut, and you both get points."
+              : "Save your barber and book in one tap next time."}
           </p>
           <ActionForm action={signUp} className="mt-6 space-y-4">
+            {invite && <input type="hidden" name="ref" value={invite} />}
             <Field label="Your name" name="full_name" autoComplete="name" required />
             <Field label="Email" name="email" type="email" autoComplete="email" required />
             <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" placeholder="(951) 555-0123" />

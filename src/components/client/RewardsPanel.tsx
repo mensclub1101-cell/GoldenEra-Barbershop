@@ -1,0 +1,135 @@
+"use client";
+
+import { useState } from "react";
+
+export type Rewards = {
+  code: string;
+  points: number;
+  my_bonus: "pending" | "earned" | null; // their own welcome bonus, if a friend invited them
+  invites: { name: string; status: "pending" | "earned"; joined: string }[];
+};
+
+const white =
+  "block w-full rounded-full bg-ink py-4 text-center text-base font-semibold text-paper transition hover:bg-ink-2 disabled:opacity-60";
+const pill = "flex-1 rounded-full bg-paper-2 py-3.5 text-center text-sm font-semibold transition hover:bg-line";
+
+// The invite flow, like Cash App's: "how it works" first, then Continue to
+// send a friend the link. The bonus is paid when a barber marks the friend's
+// first cut.
+export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: string }) {
+  const [step, setStep] = useState<"intro" | "invite">("intro");
+  const [copied, setCopied] = useState(false);
+  const link = `${siteUrl}/signup?ref=${rewards.code}`;
+  const message = `Join me at Golden Era Barbershop. Sign up with my link and book your first cut, and we both get points: ${link}`;
+
+  function copy() {
+    navigator.clipboard?.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  async function share() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Golden Era Barbershop", text: message });
+        return;
+      } catch {
+        // Closed the sheet: fall through to copy.
+      }
+    }
+    copy();
+  }
+
+  if (step === "intro") {
+    const steps = [
+      "Your friend makes an account with your invite.",
+      "They book an appointment with their barber.",
+      "After their first cut, you get 50 points and they get 25.",
+    ];
+    return (
+      <div className="space-y-6 px-1 pt-2">
+        <div aria-hidden className="mx-auto grid h-28 w-28 place-items-center rounded-full bg-paper-2">
+          <svg viewBox="0 0 24 24" className="h-14 w-14" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3.5" y="8" width="17" height="4" rx="1" />
+            <path d="M5 12v8h14v-8M12 8v12M12 8S10.5 4 8 4.5 7 8 12 8zM12 8s1.5-4 4-3.5S17 8 12 8z" />
+          </svg>
+        </div>
+        <h1 className="font-display text-5xl font-semibold uppercase leading-[0.95] tracking-wide">
+          Get 50 points for you, 25 for a friend
+        </h1>
+        <p className="text-base">Here&rsquo;s how to get your bonus:</p>
+        <ol className="space-y-4">
+          {steps.map((t, n) => (
+            <li key={t} className="flex items-start gap-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-paper-2 text-sm font-semibold">{n + 1}</span>
+              <span className="pt-1.5 text-base leading-snug">{t}</span>
+            </li>
+          ))}
+        </ol>
+        <button type="button" className={white} onClick={() => setStep("invite")}>
+          Continue
+        </button>
+        <Balance rewards={rewards} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 px-1 pt-2">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Invite a friend</p>
+        <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">Send your invite</h1>
+        <p className="mt-2 text-sm text-ink-2">
+          When they make an account and get their first cut, you get 50 points and they get 25.
+        </p>
+      </div>
+      <div className="rounded-3xl border border-line p-5 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted">Your invite code</p>
+        <p className="mt-2 font-mono text-3xl tracking-[0.2em]">{rewards.code}</p>
+      </div>
+      <a href={`sms:?&body=${encodeURIComponent(message)}`} className={white}>
+        Text a friend
+      </a>
+      <div className="flex gap-2">
+        <button type="button" className={pill} onClick={share}>
+          More ways
+        </button>
+        <button type="button" className={pill} onClick={copy}>
+          {copied ? "Copied ✓" : "Copy link"}
+        </button>
+      </div>
+      {rewards.invites.length > 0 && (
+        <div className="rounded-3xl border border-line p-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-muted">Your invites</p>
+          <ul className="divide-y divide-line">
+            {rewards.invites.map((f, i) => (
+              <li key={i} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="font-semibold">{f.name}</span>
+                <span className={`text-xs font-semibold ${f.status === "earned" ? "text-ink" : "text-muted"}`}>
+                  {f.status === "earned" ? "+50 points earned" : "Waiting on first cut"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <Balance rewards={rewards} />
+      <button type="button" onClick={() => setStep("intro")} className="block w-full py-2 text-center text-sm font-semibold text-muted">
+        How it works
+      </button>
+    </div>
+  );
+}
+
+function Balance({ rewards }: { rewards: Rewards }) {
+  return (
+    <div className="flex items-center justify-between rounded-3xl bg-paper-2 p-5">
+      <div>
+        <p className="text-sm text-ink-2">Your balance</p>
+        {rewards.my_bonus === "pending" && <p className="mt-1 text-xs text-muted">Your 25-point welcome bonus comes with your first cut.</p>}
+      </div>
+      <p className="font-display text-4xl font-semibold">{rewards.points}</p>
+    </div>
+  );
+}

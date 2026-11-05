@@ -89,6 +89,9 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   // Supabase hides existing emails by returning a user with no identities.
   if (data.user?.identities?.length === 0) return { error: "That email already has an account. Log in instead." };
   if (!data.session) return { notice: "Check your email to confirm your account, then log in." };
+  // Came in on a friend's invite: their bonus waits on this client's first cut.
+  const ref = text(formData, "ref");
+  if (ref) await supabase.rpc("claim_referral", { p_code: ref });
   redirect("/client");
 }
 

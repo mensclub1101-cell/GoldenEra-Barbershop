@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/AppShell";
 import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { CheckInForm } from "@/components/CheckInForm";
+import { RewardsPanel, type Rewards } from "@/components/client/RewardsPanel";
 import { ShopTabs } from "@/components/owner/ShopTabs";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { setMyBarber, updateMyDetails } from "@/app/actions/client";
@@ -57,10 +58,14 @@ export function ClientApp({
   viewer,
   shops: allShops,
   barbers: allBarbers,
+  rewards,
+  siteUrl,
 }: {
   viewer: Viewer;
   shops: Tables<"shops">[];
   barbers: Seat[];
+  rewards: Rewards | null; // null until the rewards tables exist
+  siteUrl: string;
 }) {
   const now = new Date();
   // A hidden barber drops out of the list, so a saved pick can go stale.
@@ -73,7 +78,7 @@ export function ClientApp({
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Home", "Barbers", "Check in", "Shops", "Me"]}>
+      <SwipeDeck labels={["Home", "Barbers", "Check in", ...(rewards ? ["Rewards"] : []), "Shops", "Me"]}>
         {/* Home: my barber, ready to book, and whether each shop is open. */}
         <div className="mx-auto max-w-md space-y-4">
           <PageTitle eyebrow="Golden Era" title={firstName ? `Hey, ${firstName}` : "Welcome"} />
@@ -96,6 +101,17 @@ export function ClientApp({
               </p>
             )}
           </Widget>
+
+          {rewards && (
+            <Widget title="My points" aside="Rewards tab">
+              <p className="font-display text-5xl font-semibold">{rewards.points}</p>
+              <p className="mt-1 text-sm text-ink-2">
+                {rewards.my_bonus === "pending"
+                  ? "Your 25-point welcome bonus comes with your first cut."
+                  : "Invite a friend: 50 points for you, 25 for them."}
+              </p>
+            </Widget>
+          )}
 
           <Widget title="Shops">
             <ul className="divide-y divide-line">
@@ -193,6 +209,13 @@ export function ClientApp({
             />
           </Widget>
         </div>
+
+        {/* Rewards: how invites work, then send one. */}
+        {rewards && (
+          <div className="mx-auto max-w-md">
+            <RewardsPanel rewards={rewards} siteUrl={siteUrl} />
+          </div>
+        )}
 
         {/* Shops: hours, directions, and a place to leave a review. */}
         <div className="mx-auto max-w-md space-y-4">
