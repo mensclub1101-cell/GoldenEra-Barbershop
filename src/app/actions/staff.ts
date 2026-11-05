@@ -128,12 +128,3 @@ export async function removeCleaningTask(taskId: string) {
   revalidatePath("/barber");
 }
 
-// An invited client's first cut is done: pays their welcome bonus and their
-// friend's invite bonus (once; the database checks it's still pending).
-export async function confirmFirstCut(profileId: string): Promise<{ error?: string; notice?: string }> {
-  const { supabase } = await staff();
-  const { data, error } = await supabase.rpc("confirm_first_cut", { p_profile: profileId });
-  if (error) return { error: error.message };
-  revalidatePath("/barber");
-  return data ? { notice: "Done. Points sent to them and their friend." } : { error: "Already confirmed." };
-}

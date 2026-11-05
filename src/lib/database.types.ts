@@ -193,6 +193,7 @@ export type Database = {
           id: string;
           name: string;
           phone: string;
+          profile_id: string | null;
           shop_id: string;
           status: WalkinStatus;
         };
@@ -378,13 +379,13 @@ export type Database = {
         Args: { p_code: string };
         Returns: boolean;
       };
-      pending_first_cuts: {
+      rewards_overview: {
         Args: never;
-        Returns: { profile_id: string; full_name: string | null; phone: string | null; barber_name: string | null; joined: string }[];
+        Returns: { friend: string; inviter: string; barber: string | null; status: "pending" | "earned"; joined: string; earned_at: string | null }[];
       };
-      confirm_first_cut: {
-        Args: { p_profile: string };
-        Returns: boolean;
+      my_invited_clients: {
+        Args: never;
+        Returns: { friend: string; status: "pending" | "earned"; joined: string }[];
       };
       peek_invite: {
         Args: { p_token: string };

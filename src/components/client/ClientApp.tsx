@@ -107,7 +107,7 @@ export function ClientApp({
               <p className="font-display text-5xl font-semibold">{rewards.points}</p>
               <p className="mt-1 text-sm text-ink-2">
                 {rewards.my_bonus === "pending"
-                  ? "Your 25-point welcome bonus comes with your first cut."
+                  ? "Check in for your first cut from the app to unlock your 25-point welcome bonus."
                   : "Invite a friend: 50 points for you, 25 for them."}
               </p>
             </Widget>

@@ -22,6 +22,7 @@ import { EventList } from "@/components/staff/EventList";
 import { ShopChat } from "@/components/staff/ShopChat";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { EditRentButton } from "@/components/owner/EditRentButton";
+import { RewardsView } from "@/components/owner/RewardsView";
 import { ShopTabs } from "@/components/owner/ShopTabs";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -60,6 +61,7 @@ export default async function OwnerPage() {
     { data: reviews },
     { data: events },
     { data: requests },
+    { data: referrals },
   ] = await Promise.all([
     supabase.from("shops").select("*").order("sort"),
     supabase.from("barbers").select("*").order("sort").order("display_name"),
@@ -70,6 +72,7 @@ export default async function OwnerPage() {
     supabase.from("reviews").select("*").order("created_at", { ascending: false }),
     supabase.from("events").select("*").gte("event_date", today).order("event_date").order("start_time"),
     supabase.from("owner_requests").select("*").order("created_at", { ascending: false }).limit(100),
+    supabase.rpc("rewards_overview"),
   ]);
 
   const allShops = shops ?? [];
@@ -93,7 +96,9 @@ export default async function OwnerPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <SwipeDeck labels={["Widgets", "Booth rent", "Supplies", "Reviews", "Events", "Shop", "Setup"]}>
+      <SwipeDeck
+        labels={["Widgets", "Booth rent", "Supplies", "Reviews", ...(referrals ? ["Rewards"] : []), "Events", "Shop", "Setup"]}
+      >
         {/* Widgets: shop chat, one shop at a time. */}
         <div>
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide sm:text-5xl">Widgets</h1>
@@ -252,6 +257,10 @@ export default async function OwnerPage() {
             </Panel>
           </div>
         </div>
+
+        {/* Rewards: every client invite and where it stands. Bonuses pay out by
+            themselves when the invited client's first check-in is marked Done. */}
+        {referrals && <RewardsView referrals={referrals} />}
 
         {/* Events: the owner posts upcoming shop events; barbers see them in their app. */}
         <div>

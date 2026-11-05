@@ -22,7 +22,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
           <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">Sign up</h1>
           <p className="mt-2 text-sm text-muted">
             {invite
-              ? "A friend invited you. Sign up and book your first cut, and you both get points."
+              ? "A friend invited you. Sign up and check in for your first cut from the app, and you both get points."
               : "Save your barber and book in one tap next time."}
           </p>
           <ActionForm action={signUp} className="mt-6 space-y-4">

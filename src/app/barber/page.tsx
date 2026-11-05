@@ -6,7 +6,7 @@ import { updateMyCard } from "@/app/actions/barber";
 import { ClockWidget } from "@/components/ClockWidget";
 import { ClientList } from "@/components/staff/ClientList";
 import { EventList } from "@/components/staff/EventList";
-import { FirstCutList } from "@/components/staff/FirstCutList";
+import { InvitedClients } from "@/components/staff/InvitedClients";
 import { MediaStudio } from "@/components/staff/MediaStudio";
 import { instagramReady } from "@/app/actions/instagram";
 import { CleaningList, SupplyList } from "@/components/staff/ShopOps";
@@ -44,7 +44,7 @@ export default async function BarberPage() {
     { data: cleaning },
     { data: clients },
     { data: events },
-    { data: firstCuts },
+    { data: invited },
   ] = await Promise.all([
     supabase.from("shops").select("name, slug").eq("id", seat.shop_id).single(),
     supabase.from("shops").select("id, name, staff_login_url").order("sort"),
@@ -62,7 +62,7 @@ export default async function BarberPage() {
       .gte("event_date", today)
       .order("event_date")
       .order("start_time"),
-    supabase.rpc("pending_first_cuts"),
+    supabase.rpc("my_invited_clients"),
   ]);
   const barberNames = Object.fromEntries((shopBarbers ?? []).map((b) => [b.id, b.display_name]));
   const myName = viewer.profile.full_name ?? seat.display_name;
@@ -122,12 +122,7 @@ export default async function BarberPage() {
           </Widget>
 
 
-          {(firstCuts ?? []).length > 0 && (
-            <Widget title="Invited clients" aside="First cut = points">
-              <p className="mb-2 text-xs text-muted">Tap after their first cut: they get 25 points and the friend who invited them 50.</p>
-              <FirstCutList pending={firstCuts ?? []} />
-            </Widget>
-          )}
+          {(invited ?? []).length > 0 && <InvitedClients clients={invited ?? []} />}
 
           <Widget title="Shop chat" aside={shop?.name}>
             <ShopChat shopId={seat.shop_id} me={viewer.userId} myName={myName} initial={(messages ?? []).reverse()} />

@@ -14,13 +14,13 @@ const white =
 const pill = "flex-1 rounded-full bg-paper-2 py-3.5 text-center text-sm font-semibold transition hover:bg-line";
 
 // The invite flow, like Cash App's: "how it works" first, then Continue to
-// send a friend the link. The bonus is paid when a barber marks the friend's
-// first cut.
+// send a friend the link. The bonus pays itself once the friend's first
+// check-in from the app is marked Done.
 export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: string }) {
   const [step, setStep] = useState<"intro" | "invite">("intro");
   const [copied, setCopied] = useState(false);
   const link = `${siteUrl}/signup?ref=${rewards.code}`;
-  const message = `Join me at Golden Era Barbershop. Sign up with my link and book your first cut, and we both get points: ${link}`;
+  const message = `Join me at Golden Era Barbershop. Sign up with my link and check in for your first cut from the app, and we both get points: ${link}`;
 
   function copy() {
     navigator.clipboard?.writeText(link).then(() => {
@@ -44,8 +44,8 @@ export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: 
   if (step === "intro") {
     const steps = [
       "Your friend makes an account with your invite.",
-      "They book an appointment with their barber.",
-      "After their first cut, you get 50 points and they get 25.",
+      "They check in for their first cut from the app.",
+      "When the cut's done, you get 50 points and they get 25. Automatically.",
     ];
     return (
       <div className="space-y-6 px-1 pt-2">
@@ -81,7 +81,7 @@ export function RewardsPanel({ rewards, siteUrl }: { rewards: Rewards; siteUrl: 
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Invite a friend</p>
         <h1 className="font-display text-4xl font-semibold uppercase tracking-wide">Send your invite</h1>
         <p className="mt-2 text-sm text-ink-2">
-          When they make an account and get their first cut, you get 50 points and they get 25.
+          When they make an account and check in for their first cut from the app, you get 50 points and they get 25.
         </p>
       </div>
       <div className="rounded-3xl border border-line p-5 text-center">
@@ -127,7 +127,9 @@ function Balance({ rewards }: { rewards: Rewards }) {
     <div className="flex items-center justify-between rounded-3xl bg-paper-2 p-5">
       <div>
         <p className="text-sm text-ink-2">Your balance</p>
-        {rewards.my_bonus === "pending" && <p className="mt-1 text-xs text-muted">Your 25-point welcome bonus comes with your first cut.</p>}
+        {rewards.my_bonus === "pending" && (
+          <p className="mt-1 text-xs text-muted">Check in for your first cut from the app to unlock your 25-point welcome bonus.</p>
+        )}
       </div>
       <p className="font-display text-4xl font-semibold">{rewards.points}</p>
     </div>

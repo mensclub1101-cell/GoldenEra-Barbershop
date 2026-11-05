@@ -1,7 +1,9 @@
 -- Client rewards: points and invites, Cash App style. A friend who signs up
--- with a client's invite code stays pending until a barber marks their first
--- cut; then the inviter gets 50 points and the friend 25. Clients only read
--- their own rows; every write goes through the functions below.
+-- with a client's invite code stays pending until their first visit is done:
+-- they check in from the app and the barber closes the walk-in as Done, like
+-- any other. That pays the friend 25 and the inviter 50 on its own; nobody
+-- has to confirm anything. Clients only read their own rows; every write goes
+-- through the functions below.
 
 create table public.client_rewards (
   profile_id uuid primary key references public.profiles (id) on delete cascade,
@@ -113,36 +115,66 @@ begin
 end;
 $$;
 
--- For barbers and the owner: invited clients still waiting on their first cut.
-create function public.pending_first_cuts()
-returns table (profile_id uuid, full_name text, phone text, barber_name text, joined timestamptz)
-language sql stable security definer set search_path = '' as $$
-  select r.profile_id, p.full_name, p.phone, b.display_name, r.created_at
-  from public.client_rewards r
-  join public.profiles p on p.id = r.profile_id
-  left join public.barbers b on b.id = p.favorite_barber_id
-  where r.referral_status = 'pending'
-    and ((select private.my_barber_id()) is not null or (select private.is_owner()))
-  order by r.created_at;
-$$;
+-- Walk-ins checked in from a signed-in client account remember who it was,
+-- so finishing that walk-in can pay their invite bonus.
+alter table public.walkins add column profile_id uuid references public.profiles (id) on delete set null;
+create index walkins_profile_id_idx on public.walkins (profile_id);
 
--- A barber (or the owner) confirms an invited client's first cut: the friend
--- gets 25 points, the inviter 50, once.
-create function public.confirm_first_cut(p_profile uuid) returns boolean
+create or replace function public.walkin_check_in(p_shop text, p_name text, p_phone text, p_barber uuid default null, p_eta text default null)
+returns int
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_shop uuid;
+  v_phone text := regexp_replace(coalesce(p_phone, ''), '[^0-9+]', '', 'g');
+  v_name text := trim(coalesce(p_name, ''));
+  v_eta time;
+  v_place int;
+begin
+  select id into v_shop from public.shops where slug = p_shop;
+  if v_shop is null then raise exception 'Pick a shop'; end if;
+  if length(v_name) = 0 or length(v_name) > 60 then raise exception 'Enter your name'; end if;
+  if v_phone !~ '^\+?[0-9]{10,15}$' then raise exception 'Enter a valid phone number'; end if;
+  if p_eta is not null and p_eta <> '' then
+    if p_eta !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' then raise exception 'Pick a time'; end if;
+    v_eta := p_eta::time;
+    if v_eta < (now() at time zone 'America/Los_Angeles')::time - interval '15 minutes' then
+      raise exception 'That time already passed. Pick another.';
+    end if;
+  end if;
+  if p_barber is not null and not exists (
+    select 1 from public.barbers where id = p_barber and shop_id = v_shop and active
+  ) then
+    raise exception 'That barber isn''t at this shop';
+  end if;
+  if exists (select 1 from public.walkins where phone = v_phone and created_at > now() - interval '10 minutes') then
+    raise exception 'You''re already checked in. Hang tight.';
+  end if;
+  if (select count(*) from public.walkins where shop_id = v_shop and created_at > now() - interval '5 minutes') >= 8 then
+    raise exception 'Lots of check-ins right now. Try again in a few minutes.';
+  end if;
+
+  -- auth.uid() is null for check-ins from the public site.
+  insert into public.walkins (shop_id, name, phone, barber_id, eta, profile_id)
+  values (v_shop, v_name, v_phone, p_barber, v_eta, (select auth.uid()));
+  select count(*) into v_place from public.walkins where shop_id = v_shop and status = 'waiting';
+  return v_place;
+end;
+$$;
+revoke execute on function public.walkin_check_in(text, text, text, uuid, text) from public;
+grant execute on function public.walkin_check_in(text, text, text, uuid, text) to anon, authenticated;
+
+-- A walk-in closed as Done pays its client's invite bonus, once.
+create function private.walkin_done_pays_invite() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
   friend public.client_rewards;
   friend_name text;
 begin
-  if (select private.my_barber_id()) is null and not (select private.is_owner()) then
-    raise exception 'Only staff can confirm a cut.';
-  end if;
-  if p_profile = (select auth.uid()) then raise exception 'You can''t confirm your own cut.'; end if;
   select * into friend from public.client_rewards
-  where profile_id = p_profile and referral_status = 'pending'
+  where profile_id = new.profile_id and referral_status = 'pending'
   for update;
-  if not found then return false; end if;
-  select coalesce(split_part(full_name, ' ', 1), 'a friend') into friend_name from public.profiles where id = p_profile;
+  if not found then return new; end if;
+  select coalesce(split_part(full_name, ' ', 1), 'a friend') into friend_name from public.profiles where id = new.profile_id;
   insert into public.points_ledger (profile_id, delta, reason, created_by)
   values (friend.profile_id, 25, 'Welcome bonus: first cut', (select auth.uid()));
   -- The inviter's account may have been deleted since.
@@ -151,12 +183,45 @@ begin
     values (friend.referred_by, 50, left('Invite bonus: ' || friend_name, 80), (select auth.uid()));
   end if;
   update public.client_rewards set referral_status = 'earned', referral_earned_at = now()
-  where profile_id = p_profile;
-  return true;
+  where profile_id = new.profile_id;
+  return new;
 end;
 $$;
+revoke execute on function private.walkin_done_pays_invite() from public, anon, authenticated;
 
-revoke execute on function public.my_rewards(), public.claim_referral(text), public.pending_first_cuts(),
-  public.confirm_first_cut(uuid) from public, anon;
-grant execute on function public.my_rewards(), public.claim_referral(text), public.pending_first_cuts(),
-  public.confirm_first_cut(uuid) to authenticated;
+create trigger walkin_done_pays_invite
+after update of status on public.walkins
+for each row
+when (new.status = 'done' and old.status is distinct from 'done' and new.profile_id is not null)
+execute function private.walkin_done_pays_invite();
+
+-- For the owner: every invite, who sent it, and where it stands.
+create function public.rewards_overview()
+returns table (friend text, inviter text, barber text, status text, joined timestamptz, earned_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select coalesce(split_part(f.full_name, ' ', 1), 'A friend'), coalesce(split_part(i.full_name, ' ', 1), 'A client'),
+    b.display_name, r.referral_status, r.created_at, r.referral_earned_at
+  from public.client_rewards r
+  join public.profiles f on f.id = r.profile_id
+  left join public.profiles i on i.id = r.referred_by
+  left join public.barbers b on b.id = f.favorite_barber_id
+  where r.referral_status is not null and (select private.is_owner())
+  order by r.created_at desc;
+$$;
+
+-- For a barber: invited clients who picked them, so they know who's coming.
+create function public.my_invited_clients()
+returns table (friend text, status text, joined timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select coalesce(split_part(f.full_name, ' ', 1), 'A friend'), r.referral_status, r.created_at
+  from public.client_rewards r
+  join public.profiles f on f.id = r.profile_id
+  where r.referral_status is not null
+    and f.favorite_barber_id = (select private.my_barber_id())
+  order by r.created_at desc;
+$$;
+
+revoke execute on function public.my_rewards(), public.claim_referral(text), public.rewards_overview(),
+  public.my_invited_clients() from public, anon;
+grant execute on function public.my_rewards(), public.claim_referral(text), public.rewards_overview(),
+  public.my_invited_clients() to authenticated;
